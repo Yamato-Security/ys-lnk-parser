@@ -87,6 +87,11 @@ pub fn guid(b: &[u8]) -> Option<String> {
 #[must_use]
 pub fn guid_v1(b: &[u8]) -> Option<(u64, String)> {
     let b = b.get(..16)?;
+    // Only a version 1 GUID (of the RFC 4122 variant) holds a time and a
+    // MAC address; in any other the same bits are random or made up.
+    if b[7] >> 4 != 1 || b[8] & 0xc0 != 0x80 {
+        return None;
+    }
     let time_low = u64::from(u32::from_le_bytes([b[0], b[1], b[2], b[3]]));
     let time_mid = u64::from(u16::from_le_bytes([b[4], b[5]]));
     let time_hi = u64::from(u16::from_le_bytes([b[6], b[7]]) & 0x0fff);

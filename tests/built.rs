@@ -61,3 +61,58 @@ fn link_info_offsets_into_the_header_are_absent() {
         assert_eq!((volume.drive_type, volume.serial), (3, 0x1234_abcd));
     }
 }
+
+/// A GUID's 16 bytes as stored, from its text form.
+fn guid(text: &str) -> [u8; 16] {
+    let hex: String = text.chars().filter(char::is_ascii_hexdigit).collect();
+    let b: Vec<u8> = (0..32)
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
+        .collect();
+    let mut out = [0; 16];
+    out[..4].copy_from_slice(&[b[3], b[2], b[1], b[0]]);
+    out[4..6].copy_from_slice(&[b[5], b[4]]);
+    out[6..8].copy_from_slice(&[b[7], b[6]]);
+    out[8..].copy_from_slice(&b[8..]);
+    out
+}
+
+/// A tracker data block: machine name, droid and birth droid.
+fn tracker(machine: &str, droid: [&str; 2], birth: [&str; 2]) -> Vec<u8> {
+    let mut block = Vec::new();
+    block.extend_from_slice(&0x60u32.to_le_bytes());
+    block.extend_from_slice(&0xa000_0003u32.to_le_bytes());
+    block.extend_from_slice(&0x58u32.to_le_bytes());
+    block.extend_from_slice(&0u32.to_le_bytes());
+    let mut name = [0u8; 16];
+    name[..machine.len()].copy_from_slice(machine.as_bytes());
+    block.extend_from_slice(&name);
+    for g in droid.iter().chain(&birth) {
+        block.extend_from_slice(&guid(g));
+    }
+    block
+}
+
+#[test]
+fn only_a_version_1_object_id_has_a_mac_address_and_time() {
+    let link = |object: &str| {
+        let mut data = header(0);
+        let volume = "a3355a32-d86e-4920-adfd-dc842d90c45f";
+        data.extend_from_slice(&tracker("pc01", [volume, object], [volume, object]));
+        data.extend_from_slice(&0u32.to_le_bytes());
+        lnk::parse(&data).unwrap().tracker.unwrap()
+    };
+    // version 1: 2010-06-21 14:55:12 on a4:ba:db:43:b0:4f
+    let v1 = link("7396a013-7d44-11df-a3ad-a4badb43b04f");
+    assert_eq!(v1.mac, "a4:ba:db:43:b0:4f");
+    assert_ne!(v1.created, 0);
+    // version 8 (lnk-forensic's crafted removable_media.lnk), and version 4
+    for other in [
+        "66666666-7777-8888-9999-aaaaaaaaaaaa",
+        "9b2c3f60-1d34-4c3e-8a0a-3f5c2e1d9b7a",
+    ] {
+        let t = link(other);
+        assert_eq!((t.mac.as_str(), t.created), ("", 0), "{other}");
+        assert_eq!(t.object_id, format!("{{{}}}", other.to_uppercase()));
+    }
+}
