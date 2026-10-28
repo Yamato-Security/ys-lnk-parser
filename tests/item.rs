@@ -98,3 +98,23 @@ fn hex(text: &str) -> Vec<u8> {
         .map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap())
         .collect()
 }
+
+#[test]
+fn nested_delegate_items_are_bounded() {
+    // A delegate (0x74, `CFSF`) wrapping a delegate, 6,000 deep: decoded
+    // without recursing that deep.
+    let mut item = vec![0, 0, 0x32, 0];
+    for _ in 0..6000 {
+        let mut outer = vec![0, 0, 0x74, 0, 0, 0];
+        outer.extend_from_slice(b"CFSF");
+        outer.extend_from_slice(&item);
+        let len = outer.len() as u16;
+        outer[..2].copy_from_slice(&len.to_le_bytes());
+        item = outer;
+        if item.len() > 60_000 {
+            break;
+        }
+    }
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::UsersFilesFolder);
+}

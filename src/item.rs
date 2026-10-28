@@ -173,6 +173,15 @@ pub fn items(list: &[u8]) -> Vec<&[u8]> {
 /// Decode one item (with its size prefix, as [`items`] returns it).
 #[must_use]
 pub fn decode(item: &[u8]) -> Item {
+    decode_at(item, 0)
+}
+
+/// How deep delegate items (0x74) may wrap one another: a delegate wraps one
+/// file entry, so a deeper nesting is damage, and an unbounded one could
+/// exhaust the stack.
+const MAX_NESTING: usize = 4;
+
+fn decode_at(item: &[u8], depth: usize) -> Item {
     let class = item.get(2).copied().unwrap_or(0);
     let mut out = Item {
         class,
@@ -225,7 +234,7 @@ pub fn decode(item: &[u8]) -> Item {
                 .unwrap_or_default()
                 .to_owned();
         }
-        0x74 => users_files_folder(item, &mut out),
+        0x74 => users_files_folder(item, &mut out, depth),
         // A known folder, by identifier (Downloads, Documents, …).
         0x00 if u32_at(item, 6) == Some(0x23fe_bbee) => {
             out.kind = Kind::RootFolder;
@@ -361,9 +370,9 @@ fn file_reference(block: &[u8]) -> Option<(u64, u16)> {
 
 /// A delegate item for a folder under the user's profile: a file entry
 /// wrapped after a `CFSF` signature.
-fn users_files_folder(item: &[u8], out: &mut Item) {
+fn users_files_folder(item: &[u8], out: &mut Item, depth: usize) {
     out.kind = Kind::UsersFilesFolder;
-    if item.get(6..10) != Some(b"CFSF") {
+    if item.get(6..10) != Some(b"CFSF") || depth >= MAX_NESTING {
         return;
     }
     // The wrapped file entry, with its own size, then a terminator and
@@ -374,7 +383,7 @@ fn users_files_folder(item: &[u8], out: &mut Item) {
     let Some(inner) = item.get(10..10 + inner_size) else {
         return;
     };
-    let mut decoded = decode(inner);
+    let mut decoded = decode_at(inner, depth + 1);
     extension_blocks(item, 10 + inner_size + 2 + 32, &mut decoded);
     out.name = decoded.name;
     out.modified = decoded.modified;
