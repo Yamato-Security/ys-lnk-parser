@@ -91,6 +91,10 @@ pub fn automatic(data: &[u8]) -> Result<Automatic, compound::Error> {
         (112, 0)
     };
     let mut at = 32;
+    // Each entry has its own stream: a number seen again is damage, and
+    // parsing its stream again would make a copy of the link per entry (a
+    // 90 KB file of repeated entries reached 853 MiB).
+    let mut seen = std::collections::HashSet::new();
     for position in 0..count {
         let Some(entry) = dest_list.get(at..) else {
             break;
@@ -112,18 +116,25 @@ pub fn automatic(data: &[u8]) -> Result<Automatic, compound::Error> {
             .collect();
         let number = u32_at(entry, 88).unwrap_or(0);
         let pin = u32_at(entry, 108).filter(|&p| p != u32::MAX);
-        let link = match file.stream(&format!("{number:x}")) {
-            Ok(Some(bytes)) => match lnk::parse(&bytes) {
-                Ok(link) => Some(link),
+        let link = if !seen.insert(number) {
+            list.problems.push(format!(
+                "DestList entry {position} repeats stream {number:x}"
+            ));
+            None
+        } else {
+            match file.stream(&format!("{number:x}")) {
+                Ok(Some(bytes)) => match lnk::parse(&bytes) {
+                    Ok(link) => Some(link),
+                    Err(e) => {
+                        list.problems.push(format!("entry {number:x}: {e}"));
+                        None
+                    }
+                },
+                Ok(None) => None,
                 Err(e) => {
                     list.problems.push(format!("entry {number:x}: {e}"));
                     None
                 }
-            },
-            Ok(None) => None,
-            Err(e) => {
-                list.problems.push(format!("entry {number:x}: {e}"));
-                None
             }
         };
         let (droid_created, mac) = item::guid_v1(&entry[24..40]).unwrap_or_default();
