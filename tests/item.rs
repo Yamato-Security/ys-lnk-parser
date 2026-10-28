@@ -74,3 +74,27 @@ fn a_damaged_storage_size_does_not_stop_the_search() {
     item[..2].copy_from_slice(&len.to_le_bytes());
     assert_eq!(decode(&item).name, "Notepad");
 }
+
+#[test]
+fn an_unterminated_unicode_short_name_ends_at_the_extension_block() {
+    // A Windows XP folder (class 0x35: a directory with a Unicode name)
+    // from Eric Zimmerman's test set: the short name "Échantill" runs into
+    // the BEEF0004 block, whose long name is the folder's.
+    let item = hex(concat!(
+        "62003500000000001431180a1100c9006300680061006e00740069006c006c00",
+        "420003000400efbe14310a0a1331006014000000c9006300680061006e007400",
+        "69006c006c006f006e00730020006400270069006d0061006700650073000000",
+        "2000"
+    ));
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::Directory);
+    assert_eq!(decoded.name, "Échantillons d'images");
+    assert_eq!(decoded.extension_blocks, 1);
+}
+
+fn hex(text: &str) -> Vec<u8> {
+    (0..text.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(&text[i..i + 2], 16).unwrap())
+        .collect()
+}

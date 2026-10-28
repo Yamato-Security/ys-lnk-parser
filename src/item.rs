@@ -268,18 +268,35 @@ fn file_entry(item: &[u8], out: &mut Item) {
     out.modified = item.get(8..12).and_then(fat_time);
     let unicode = class & 0x04 != 0;
     let name_at = 14;
+    // The item ends with the offset of its `BEEF0004` extension block. The
+    // short name ends before it even when it isn't NUL-terminated, as some
+    // Windows XP items store a Unicode name.
+    let block_at = beef0004_offset(item).filter(|&at| at >= name_at);
+    let name_bytes = item
+        .get(name_at..block_at.unwrap_or(item.len()))
+        .unwrap_or_default();
     let (short, used) = if unicode {
-        utf16_until_nul(item.get(name_at..).unwrap_or_default())
+        utf16_until_nul(name_bytes)
     } else {
-        let s = ascii_until_nul(item.get(name_at..).unwrap_or_default());
+        let s = ascii_until_nul(name_bytes);
         let len = s.len() + 1;
         (s, len)
     };
     out.name = short;
-    // Extension blocks start at the next even offset.
+    // Extension blocks start there, or else at the next even offset.
     let mut at = name_at + used;
     at += at % 2;
-    extension_blocks(item, at, out);
+    extension_blocks(item, block_at.unwrap_or(at), out);
+}
+
+/// Where a file entry's `BEEF0004` block starts, from the offset in the
+/// item's last two bytes (the block's own last field), when a block with
+/// that signature is there.
+fn beef0004_offset(item: &[u8]) -> Option<usize> {
+    let at = usize::from(u16_at(item, item.len().checked_sub(2)?)?);
+    let size = usize::from(u16_at(item, at)?);
+    (at + size == item.len() && size >= 8 && u32_at(item, at + 4) == Some(0xbeef_0004))
+        .then_some(at)
 }
 
 /// `BEEF0004` (and other) extension blocks from `at`.
