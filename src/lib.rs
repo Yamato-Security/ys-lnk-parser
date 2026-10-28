@@ -3,14 +3,18 @@
 //! ([`jumplist`]) and the compound files they're stored in ([`compound`]).
 //!
 //! Written from the public documentation: libyal's "Windows Shell Item
-//! format" and "Jump lists format", Microsoft's MS-SHLLINK and MS-CFB. One
-//! dependency, its sibling `sootmark-common` (times); every read is
+//! format" and "Jump lists format", Microsoft's MS-SHLLINK, MS-PROPSTORE and
+//! MS-CFB. No dependencies by default (the `codepages` feature adds
+//! `encoding_rs` for code pages other than Windows-1252); every read is
 //! bounds-checked and damage is reported, never a panic.
 
+pub mod codepage;
 pub mod compound;
+pub mod guid_names;
 pub mod item;
 pub mod jumplist;
 pub mod lnk;
+pub mod property;
 
 /// This crate's version, for provenance.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

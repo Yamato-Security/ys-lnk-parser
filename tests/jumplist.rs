@@ -258,3 +258,127 @@ fn huge_header_counts_are_bounded() {
     custom[4..8].copy_from_slice(&u32::MAX.to_le_bytes());
     assert_eq!(jumplist::custom(&custom).categories.len(), 5);
 }
+
+/// A compound file (version 3, 512-byte sectors) holding `streams` in
+/// regular sectors (each at least 4,096 bytes, so none is in the mini
+/// stream), every entry a right sibling of the one before.
+fn compound_file(streams: &[(&str, Vec<u8>)]) -> Vec<u8> {
+    const SECTOR: usize = 512;
+    const END: u32 = 0xffff_fffe;
+    const FREE: u32 = 0xffff_ffff;
+    let data: Vec<usize> = streams
+        .iter()
+        .map(|(_, b)| b.len().div_ceil(SECTOR))
+        .collect();
+    let dir = (streams.len() + 1).div_ceil(4);
+    let fat_sectors = 1;
+    let mut fat = vec![FREE; SECTOR / 4];
+    fat[0] = 0xffff_fffd; // the FAT itself
+    let mut next = fat_sectors;
+    let mut chain = |n: usize, next: &mut usize| {
+        let start = *next;
+        for i in 0..n {
+            fat[start + i] = if i + 1 == n {
+                END
+            } else {
+                (start + i + 1) as u32
+            };
+        }
+        *next += n;
+        start as u32
+    };
+    let dir_start = chain(dir, &mut next);
+    let starts: Vec<u32> = data.iter().map(|&n| chain(n, &mut next)).collect();
+    assert!(next <= SECTOR / 4);
+    let entry = |name: &str, kind: u8, right: u32, child: u32, start: u32, size: u32| {
+        let mut e = vec![0u8; 128];
+        let units: Vec<u16> = name.encode_utf16().chain([0]).collect();
+        for (i, u) in units.iter().enumerate() {
+            e[2 * i..2 * i + 2].copy_from_slice(&u.to_le_bytes());
+        }
+        e[64..66].copy_from_slice(&((units.len() * 2) as u16).to_le_bytes());
+        e[66] = kind;
+        e[67] = 1; // black
+        e[68..72].copy_from_slice(&FREE.to_le_bytes()); // no left sibling
+        e[72..76].copy_from_slice(&right.to_le_bytes());
+        e[76..80].copy_from_slice(&child.to_le_bytes());
+        e[116..120].copy_from_slice(&start.to_le_bytes());
+        e[120..124].copy_from_slice(&size.to_le_bytes());
+        e
+    };
+    let mut header = vec![0u8; SECTOR];
+    header[..8].copy_from_slice(&[0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]);
+    header[24..26].copy_from_slice(&0x3eu16.to_le_bytes());
+    header[26..28].copy_from_slice(&3u16.to_le_bytes());
+    header[28..30].copy_from_slice(&0xfffeu16.to_le_bytes());
+    header[30..32].copy_from_slice(&9u16.to_le_bytes());
+    header[32..34].copy_from_slice(&6u16.to_le_bytes());
+    header[44..48].copy_from_slice(&(fat_sectors as u32).to_le_bytes());
+    header[48..52].copy_from_slice(&dir_start.to_le_bytes());
+    header[56..60].copy_from_slice(&4096u32.to_le_bytes());
+    header[60..64].copy_from_slice(&END.to_le_bytes());
+    header[68..72].copy_from_slice(&END.to_le_bytes());
+    for i in 0..109 {
+        let v = if i < fat_sectors { i as u32 } else { FREE };
+        header[76 + 4 * i..80 + 4 * i].copy_from_slice(&v.to_le_bytes());
+    }
+    let mut out = header;
+    for v in &fat {
+        out.extend_from_slice(&v.to_le_bytes());
+    }
+    let mut directory = entry("Root Entry", 5, FREE, 1, END, 0);
+    for (k, (name, bytes)) in streams.iter().enumerate() {
+        let right = if k + 1 < streams.len() {
+            (k + 2) as u32
+        } else {
+            FREE
+        };
+        directory.extend(entry(name, 2, right, FREE, starts[k], bytes.len() as u32));
+    }
+    directory.resize(dir * SECTOR, 0);
+    out.extend(directory);
+    for (_, bytes) in streams {
+        let mut b = bytes.clone();
+        b.resize(b.len().div_ceil(SECTOR) * SECTOR, 0);
+        out.extend(b);
+    }
+    out
+}
+
+#[test]
+fn destlist_entries_repeating_a_stream_read_it_once() {
+    // A DestList (version 4) of 200 entries all naming stream "1": the link
+    // is read for the first, and each repeat is a problem, not a copy.
+    let link = std::fs::read(fixtures().join("lnk/Win10/services.lnk")).unwrap();
+    let mut stream = link.clone();
+    stream.resize(4096, 0);
+    let entries = 200;
+    let mut dest = vec![0u8; 32];
+    dest[..4].copy_from_slice(&4u32.to_le_bytes());
+    dest[4..8].copy_from_slice(&(entries as u32).to_le_bytes());
+    for _ in 0..entries {
+        let mut e = vec![0u8; 130];
+        e[88..92].copy_from_slice(&1u32.to_le_bytes()); // entry number: stream "1"
+        e[108..112].copy_from_slice(&u32::MAX.to_le_bytes()); // not pinned
+        e[128..130].copy_from_slice(&1u16.to_le_bytes()); // a 1-character path
+        e.extend_from_slice(&u16::from(b'x').to_le_bytes());
+        e.extend_from_slice(&[0; 4]); // trailer
+        dest.extend(e);
+    }
+    dest.resize(dest.len().max(4096), 0);
+    let file = compound_file(&[("DestList", dest), ("1", stream)]);
+    let list = jumplist::automatic(&file).unwrap();
+    assert_eq!(list.destinations.len(), entries);
+    let with_link = list
+        .destinations
+        .iter()
+        .filter(|d| d.link.is_some())
+        .count();
+    assert_eq!(with_link, 1);
+    let repeats = list
+        .problems
+        .iter()
+        .filter(|p| p.contains("repeats stream 1"))
+        .count();
+    assert_eq!(repeats, entries - 1, "{:?}", list.problems.first());
+}

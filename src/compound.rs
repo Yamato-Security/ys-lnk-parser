@@ -13,8 +13,6 @@
 
 use core::fmt;
 
-use common::time::Ts;
-
 use crate::{u16_at, u32_at, u64_at};
 
 const SIGNATURE: [u8; 8] = [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1];
@@ -63,12 +61,12 @@ pub struct Entry {
     start: u32,
     /// Its size in bytes.
     pub size: u64,
-    /// When it was created: storages; `None` when not recorded, as for
+    /// When it was created (FILETIME): storages; `None` when not recorded, as for
     /// streams and usually the root.
-    pub created: Option<Ts>,
-    /// When it was last modified: storages and the root; `None` when not
+    pub created: Option<u64>,
+    /// When it was last modified (FILETIME): storages and the root; `None` when not
     /// recorded, as for streams.
-    pub modified: Option<Ts>,
+    pub modified: Option<u64>,
     /// The storage holding it, as an index into [`CompoundFile::entries`]:
     /// `None` for the root, and for an entry the tree doesn't reach from the
     /// root.
@@ -362,8 +360,8 @@ fn place(
 }
 
 /// A FILETIME, `None` when zero (not recorded).
-fn filetime(raw: u64) -> Option<Ts> {
-    (raw != 0).then(|| Ts::from_filetime(raw))
+fn filetime(raw: u64) -> Option<u64> {
+    (raw != 0).then_some(raw)
 }
 
 /// Sector `n` (sector 0 follows the 512-byte header).
@@ -538,8 +536,8 @@ mod tests {
     fn a_zero_filetime_is_not_recorded() {
         assert_eq!(filetime(0), None);
         assert_eq!(
-            filetime(130_131_449_897_040_000).and_then(|t| t.to_iso8601()),
-            Some("2013-05-16T02:29:49.7040000Z".to_owned())
+            filetime(130_131_449_897_040_000),
+            Some(130_131_449_897_040_000)
         );
     }
 

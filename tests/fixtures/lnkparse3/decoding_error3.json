@@ -1,0 +1,192 @@
+{
+    "data": {
+        "icon_location": "%SystemRoot%\\System32\\SHELL32.dll",
+        "relative_path": ".\\Mod for Pixelmon\\Error Fix.bat",
+        "working_directory": "C:\\Users\\\u0414\u0438\u043c\u0430\\Desktop\\PixelMod\\Mod for Pixelmon"
+    },
+    "extra": {
+        "DISTRIBUTED_LINK_TRACKER_BLOCK": {
+            "birth_droid_file_identifier": "39FCBF0C-ED2E-11EA-AEF6-B0FC36C1F116",
+            "birth_droid_volume_identifier": "FE9E18F2-D752-4BA0-92A3-382C109743B5",
+            "droid_file_identifier": "39FCBF0C-ED2E-11EA-AEF6-B0FC36C1F116",
+            "droid_volume_identifier": "FE9E18F2-D752-4BA0-92A3-382C109743B5",
+            "length": 88,
+            "machine_identifier": "desktop-9ai08qd",
+            "size": 96,
+            "version": 0
+        },
+        "METADATA_PROPERTIES_BLOCK": {
+            "property_store": [
+                {
+                    "format_id": "DABD30ED-0043-4789-A7F8-D013A4736622",
+                    "serialized_property_values": [
+                        {
+                            "id": 100,
+                            "value": "Mod for Pixelmon (C:\\Users\\\u0414\u0438\u043c\u0430\\\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b\\PixelMod)",
+                            "value_size": 129,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 157,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "B725F130-47EF-101A-A5F1-02608C9EEBAC",
+                    "serialized_property_values": [
+                        {
+                            "id": 10,
+                            "value": "Error Fix.bat",
+                            "value_size": 45,
+                            "value_type": "VT_LPWSTR"
+                        },
+                        {
+                            "id": 15,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        },
+                        {
+                            "id": 12,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_UI8"
+                        },
+                        {
+                            "id": 4,
+                            "value": "\u041f\u0430\u043a\u0435\u0442\u043d\u044b\u0439 \u0444\u0430\u0439\u043b Windows",
+                            "value_size": 61,
+                            "value_type": "VT_LPWSTR"
+                        },
+                        {
+                            "id": 14,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        }
+                    ],
+                    "storage_size": 197,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "28636AA6-953D-11D2-B5D6-00C04FD918D0",
+                    "serialized_property_values": [
+                        {
+                            "id": 30,
+                            "value": "C:\\Users\\\u0414\u0438\u043c\u0430\\Desktop\\PixelMod\\Mod for Pixelmon\\Error Fix.bat",
+                            "value_size": 141,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 169,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "446D16B1-8DAD-4870-A748-402EA43D788C",
+                    "serialized_property_values": [
+                        {
+                            "id": 104,
+                            "value": null,
+                            "value_size": 29,
+                            "value_type": "VT_CLSID"
+                        }
+                    ],
+                    "storage_size": 57,
+                    "version": "0x53505331"
+                }
+            ],
+            "size": 592
+        }
+    },
+    "header": {
+        "accessed_time": "2020-09-03T14:59:20+00:00",
+        "creation_time": "2020-09-02T16:27:18+00:00",
+        "file_flags": [
+            "FILE_ATTRIBUTE_ARCHIVE",
+            "FILE_ATTRIBUTE_COMPRESSED"
+        ],
+        "file_size": 135,
+        "guid": "00021401-0000-0000-C000-000000000046",
+        "header_size": 76,
+        "hotkey": "UNSET - UNSET {0x0000}",
+        "icon_index": 29,
+        "link_flags": [
+            "HasTargetIDList",
+            "HasLinkInfo",
+            "HasRelativePath",
+            "HasWorkingDir",
+            "HasIconLocation",
+            "IsUnicode",
+            "EnableTargetMetadata"
+        ],
+        "modified_time": "2020-09-02T16:27:24+00:00",
+        "r_file_flags": 2080,
+        "r_hotkey": 0,
+        "r_link_flags": 524507,
+        "reserved0": 0,
+        "reserved1": 0,
+        "reserved2": 0,
+        "windowstyle": "SW_SHOWNORMAL"
+    },
+    "link_info": {
+        "common_network_relative_link_offset": 64,
+        "common_path_suffix": "\u00c4\u00e8\u00ec\u00e0\\Desktop\\PixelMod\\Mod for Pixelmon\\Error Fix.bat",
+        "common_path_suffix_offset": 108,
+        "link_info_flags": 3,
+        "link_info_header_size": 28,
+        "link_info_size": 161,
+        "local_base_path": "C:\\Users\\",
+        "local_base_path_offset": 52,
+        "location": "Local",
+        "location_info": {
+            "drive_serial_number": "0xe60d92cf",
+            "drive_type": "DRIVE_FIXED",
+            "r_drive_type": 3,
+            "volume_id_size": 24,
+            "volume_label": "Windows",
+            "volume_label_offset": 16
+        },
+        "volume_id_offset": 28
+    },
+    "size": 1541,
+    "target": {
+        "index": 78,
+        "items": [
+            {
+                "class": "Root Folder",
+                "guid": "20D04FE0-3AEA-1069-A2D8-08002B30309D",
+                "sort_index": "My Computer",
+                "sort_index_value": 80
+            },
+            {
+                "class": "Volume Item",
+                "flags": "0xe",
+                "volume_identifier": "B4BFCC3A-DB2C-424C-B029-7FE99A87C641"
+            },
+            {
+                "class": "File entry",
+                "file_attribute_flags": 2064,
+                "file_size": 0,
+                "flags": "Is directory",
+                "modification_time": "2020-09-03T15:00:40+00:00",
+                "primary_name": "PixelMod"
+            },
+            {
+                "class": "File entry",
+                "file_attribute_flags": 2064,
+                "file_size": 0,
+                "flags": "Is directory",
+                "modification_time": "2020-09-03T14:59:52+00:00",
+                "primary_name": "MODFOR~1"
+            },
+            {
+                "class": "File entry",
+                "file_attribute_flags": 2080,
+                "file_size": 135,
+                "flags": "Is file",
+                "modification_time": "2020-09-02T16:27:26+00:00",
+                "primary_name": "ERRORF~1.BAT"
+            }
+        ],
+        "size": 380
+    }
+}

@@ -1,0 +1,149 @@
+{
+    "data": {
+        "relative_path": ".\\\u00a0"
+    },
+    "extra": {
+        "DISTRIBUTED_LINK_TRACKER_BLOCK": {
+            "birth_droid_file_identifier": "16F6CD2D-E6F1-11EA-A184-706655A5C7F0",
+            "birth_droid_volume_identifier": "00000000-0000-0000-0000-000000000000",
+            "droid_file_identifier": "16F6CD2D-E6F1-11EA-A184-706655A5C7F0",
+            "droid_volume_identifier": "00000000-0000-0000-0000-000000000000",
+            "length": 88,
+            "machine_identifier": "desktop-o6lerhr",
+            "size": 96,
+            "version": 0
+        },
+        "METADATA_PROPERTIES_BLOCK": {
+            "property_store": [
+                {
+                    "format_id": "DABD30ED-0043-4789-A7F8-D013A4736622",
+                    "serialized_property_values": [
+                        {
+                            "id": 100,
+                            "value": "\u0420\u0430\u0431\u043e\u0447\u0438\u0439 \u0441\u0442\u043e\u043b (C:\\\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u0438\\\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c)",
+                            "value_size": 105,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 133,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "B725F130-47EF-101A-A5F1-02608C9EEBAC",
+                    "serialized_property_values": [
+                        {
+                            "id": 15,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        },
+                        {
+                            "id": 4,
+                            "value": "\u041f\u0430\u043f\u043a\u0430 \u0441 \u0444\u0430\u0439\u043b\u0430\u043c\u0438",
+                            "value_size": 49,
+                            "value_type": "VT_LPWSTR"
+                        },
+                        {
+                            "id": 14,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        }
+                    ],
+                    "storage_size": 119,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "28636AA6-953D-11D2-B5D6-00C04FD918D0",
+                    "serialized_property_values": [
+                        {
+                            "id": 30,
+                            "value": "C:\\Users\\\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c\\Desktop\\",
+                            "value_size": 81,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 109,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "446D16B1-8DAD-4870-A748-402EA43D788C",
+                    "serialized_property_values": [
+                        {
+                            "id": 104,
+                            "value": null,
+                            "value_size": 29,
+                            "value_type": "VT_CLSID"
+                        }
+                    ],
+                    "storage_size": 57,
+                    "version": "0x53505331"
+                }
+            ],
+            "size": 430
+        }
+    },
+    "header": {
+        "accessed_time": "2020-09-12T15:35:19+00:00",
+        "creation_time": "2020-08-25T18:03:29+00:00",
+        "file_flags": [
+            "FILE_ATTRIBUTE_READONLY",
+            "FILE_ATTRIBUTE_DIRECTORY"
+        ],
+        "file_size": 4096,
+        "guid": "00021401-0000-0000-C000-000000000046",
+        "header_size": 76,
+        "hotkey": "UNSET - UNSET {0x0000}",
+        "icon_index": 0,
+        "link_flags": [
+            "HasTargetIDList",
+            "HasLinkInfo",
+            "HasRelativePath",
+            "IsUnicode",
+            "EnableTargetMetadata"
+        ],
+        "modified_time": "2020-09-11T11:46:36+00:00",
+        "r_file_flags": 17,
+        "r_hotkey": 0,
+        "r_link_flags": 524427,
+        "reserved0": 0,
+        "reserved1": 0,
+        "reserved2": 0,
+        "windowstyle": "SW_SHOWNORMAL"
+    },
+    "link_info": {
+        "common_network_relative_link_offset": 0,
+        "common_path_suffix": "",
+        "common_path_suffix_offset": 77,
+        "link_info_flags": 1,
+        "link_info_header_size": 28,
+        "link_info_size": 78,
+        "local_base_path": "C:\\Users\\\u00cf\u00ee\u00eb\u00fc\u00e7\u00ee\u00e2\u00e0\u00f2\u00e5\u00eb\u00fc\\Desktop\\\u00a0",
+        "local_base_path_offset": 45,
+        "location": "Local",
+        "location_info": {
+            "drive_serial_number": "0x6f2abee",
+            "drive_type": "DRIVE_FIXED",
+            "r_drive_type": 3,
+            "volume_id_size": 17,
+            "volume_label": "",
+            "volume_label_offset": 16
+        },
+        "volume_id_offset": 28
+    },
+    "size": 770,
+    "target": {
+        "index": 78,
+        "items": [
+            {
+                "class": "File entry",
+                "file_attribute_flags": 17,
+                "file_size": 0,
+                "flags": "Is directory",
+                "modification_time": "2020-09-11T11:46:38+00:00",
+                "primary_name": "9DEC~1"
+            }
+        ],
+        "size": 76
+    }
+}
