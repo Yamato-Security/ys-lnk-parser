@@ -7,7 +7,7 @@
 //! short name, FAT times and, in a `BEEF0004` extension block, the long
 //! name, creation and access times and the NTFS file reference.
 
-use crate::{u16_at, u32_at, u64_at};
+use crate::{codepage, guid_names, property, u16_at, u32_at, u64_at};
 
 /// What an item is.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -173,7 +173,14 @@ pub fn items(list: &[u8]) -> Vec<&[u8]> {
 /// Decode one item (with its size prefix, as [`items`] returns it).
 #[must_use]
 pub fn decode(item: &[u8]) -> Item {
-    decode_at(item, 0)
+    decode_with(item, 1252)
+}
+
+/// Decode one item, reading names that aren't Unicode in `code_page`
+/// (see [`codepage`]).
+#[must_use]
+pub fn decode_with(item: &[u8], code_page: u16) -> Item {
+    decode_at(item, 0, code_page)
 }
 
 /// How deep delegate items (0x74) may wrap one another: a delegate wraps one
@@ -181,7 +188,7 @@ pub fn decode(item: &[u8]) -> Item {
 /// exhaust the stack.
 const MAX_NESTING: usize = 4;
 
-fn decode_at(item: &[u8], depth: usize) -> Item {
+fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
     let class = item.get(2).copied().unwrap_or(0);
     let mut out = Item {
         class,
@@ -215,14 +222,14 @@ fn decode_at(item: &[u8], depth: usize) -> Item {
                 .clone_into(&mut out.name);
         }
         // File entries; some writers set the class's high bit (0xB1).
-        c if c & 0x70 == 0x30 && c != 0x71 && c != 0x74 => file_entry(item, &mut out),
+        c if c & 0x70 == 0x30 && c != 0x71 && c != 0x74 => file_entry(item, &mut out, code_page),
         0x41..=0x4f | 0xc3 => {
             out.kind = Kind::Network;
-            out.name = ascii_until_nul(item.get(5..).unwrap_or_default());
+            out.name = codepage::decode(item.get(5..).unwrap_or_default(), code_page);
         }
         0x61 => {
             out.kind = Kind::Uri;
-            out.name = uri(item);
+            out.name = uri(item, code_page);
         }
         0x71 => {
             out.kind = Kind::ControlPanel;
@@ -234,7 +241,7 @@ fn decode_at(item: &[u8], depth: usize) -> Item {
                 .unwrap_or_default()
                 .to_owned();
         }
-        0x74 => users_files_folder(item, &mut out, depth),
+        0x74 => users_files_folder(item, &mut out, depth, code_page),
         // A known folder, by identifier (Downloads, Documents, …).
         0x00 if u32_at(item, 6) == Some(0x23fe_bbee) => {
             out.kind = Kind::RootFolder;
@@ -265,14 +272,16 @@ fn decode_at(item: &[u8], depth: usize) -> Item {
     }
     if out.name.is_empty() {
         if let Some(g) = &out.guid {
-            out.name.clone_from(g);
+            // Named from Eric Zimmerman's table when his tools would name it,
+            // else the GUID itself.
+            out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
         }
     }
     out
 }
 
 /// A file entry (class 0x3N: 0x1 directory, 0x2 file, 0x4 Unicode name).
-fn file_entry(item: &[u8], out: &mut Item) {
+fn file_entry(item: &[u8], out: &mut Item, code_page: u16) {
     let class = out.class;
     out.kind = if class & 0x01 != 0 {
         Kind::Directory
@@ -292,9 +301,12 @@ fn file_entry(item: &[u8], out: &mut Item) {
     let (short, used) = if unicode {
         utf16_until_nul(name_bytes)
     } else {
-        let s = ascii_until_nul(name_bytes);
-        let len = s.len() + 1;
-        (s, len)
+        // In bytes (a code page character may take two), with the NUL.
+        let len = name_bytes
+            .iter()
+            .position(|&b| b == 0)
+            .map_or(name_bytes.len(), |n| n + 1);
+        (codepage::decode(name_bytes, code_page), len)
     };
     out.name = short;
     // Extension blocks start there, or else at the next even offset.
@@ -370,7 +382,7 @@ fn file_reference(block: &[u8]) -> Option<(u64, u16)> {
 
 /// A delegate item for a folder under the user's profile: a file entry
 /// wrapped after a `CFSF` signature.
-fn users_files_folder(item: &[u8], out: &mut Item, depth: usize) {
+fn users_files_folder(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
     out.kind = Kind::UsersFilesFolder;
     if item.get(6..10) != Some(b"CFSF") || depth >= MAX_NESTING {
         return;
@@ -383,7 +395,7 @@ fn users_files_folder(item: &[u8], out: &mut Item, depth: usize) {
     let Some(inner) = item.get(10..10 + inner_size) else {
         return;
     };
-    let mut decoded = decode_at(inner, depth + 1);
+    let mut decoded = decode_at(inner, depth + 1, code_page);
     extension_blocks(item, 10 + inner_size + 2 + 32, &mut decoded);
     out.name = decoded.name;
     out.modified = decoded.modified;
@@ -394,49 +406,25 @@ fn users_files_folder(item: &[u8], out: &mut Item, depth: usize) {
 }
 
 /// `System.ItemNameDisplay` (FMTID `{B725F130-…}`, id 10) from a serialized
-/// property store: storages (`1SPS`) of values (size, id, reserved byte,
-/// then a typed value; `VT_LPWSTR` is a character count and UTF-16).
+/// property store, which may be preceded by a small header.
 fn display_name(store: &[u8]) -> Option<String> {
-    const NAME: &str = "{B725F130-47EF-101A-A5F1-02608C9EEBAC}";
-    let mut at = 0;
-    while let Some(size) = u32_at(store, at).map(|n| n as usize) {
-        if size < 24 || at + size > store.len() {
-            // Storages may be preceded by a small header: find the next
-            // signature after this one's, so that the search moves on even
-            // when the size in front of it is damaged.
-            let next = store.get(at + 5..)?.windows(4).position(|w| w == b"1SPS")?;
-            at = at + 1 + next;
-            continue;
-        }
-        let storage = &store[at..at + size];
-        if storage.get(4..8) == Some(b"1SPS") && guid(storage.get(8..)?).as_deref() == Some(NAME) {
-            let mut v = 24;
-            while let Some(len) = u32_at(storage, v).map(|n| n as usize) {
-                if len < 13 || v + len > storage.len() {
-                    break;
-                }
-                let value = &storage[v..v + len];
-                if u32_at(value, 4) == Some(10) && u16_at(value, 9) == Some(0x1f) {
-                    let chars = u32_at(value, 13)? as usize;
-                    let text = value.get(17..17 + 2 * chars)?;
-                    return Some(utf16_until_nul(text).0);
-                }
-                v += len;
-            }
-        }
-        at += size;
-    }
-    None
+    property::parse(store, 1252)
+        .into_iter()
+        .find(|p| p.canonical_name() == Some("System.ItemNameDisplay"))
+        .and_then(|p| match p.value {
+            property::Value::Text(text) => Some(text),
+            _ => None,
+        })
 }
 
-fn uri(item: &[u8]) -> String {
+fn uri(item: &[u8], code_page: u16) -> String {
     // Data size at +4; the URI follows a fixed header, ASCII or UTF-16.
     let data = item.get(8..).unwrap_or_default();
     let unicode = item.get(3).is_some_and(|f| f & 0x80 != 0);
     if unicode {
         utf16_until_nul(data).0
     } else {
-        ascii_until_nul(data)
+        codepage::decode(data, code_page)
     }
 }
 
