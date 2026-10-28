@@ -303,52 +303,58 @@ pub fn parse(data: &[u8]) -> Result<Link, Error> {
 }
 
 /// LinkInfo (MS-SHLLINK 2.3): the volume and local path, or the network
-/// share, with Unicode forms when the header is long enough.
+/// share, with Unicode forms when the header is long enough. An offset
+/// into the header itself, or past the structure, is taken as absent: a
+/// suffix offset of 0 would otherwise read the size field as text.
 fn link_info(info: &[u8], link: &mut Link) {
     let header = u32_at(info, 4).unwrap_or(0) as usize;
     let flags = u32_at(info, 8).unwrap_or(0);
-    let offset = |at| u32_at(info, at).map_or(0, |n| n as usize);
+    let offset = |at| valid_offset(info, at, header.max(0x1c));
+    let unicode = header >= 0x24;
     if flags & 1 != 0 {
-        let volume = offset(12);
-        if let Some(v) = info.get(volume..) {
-            let label_at = offset_of(v, 12);
-            let label = if label_at == 0x14 {
-                string_at(v, offset_of(v, 16), true)
-            } else {
-                string_at(v, label_at, false)
+        if let Some(v) = offset(12).and_then(|o| info.get(o..)) {
+            let label = match valid_offset(v, 12, 0x10) {
+                Some(0x14) => valid_offset(v, 16, 0x14).map(|o| string_at(v, o, true)),
+                Some(at) => Some(string_at(v, at, false)),
+                None => None,
             };
             link.volume = Some(Volume {
                 drive_type: u32_at(v, 4).unwrap_or(0),
                 serial: u32_at(v, 8).unwrap_or(0),
-                label,
+                label: label.unwrap_or_default(),
             });
         }
-        link.local_path = if header >= 0x24 && offset(28) != 0 {
-            string_at(info, offset(28), true)
-        } else {
-            string_at(info, offset(16), false)
+        link.local_path = match (unicode.then(|| offset(28)).flatten(), offset(16)) {
+            (Some(at), _) => string_at(info, at, true),
+            (None, Some(at)) => string_at(info, at, false),
+            (None, None) => String::new(),
         };
     }
     if flags & 2 != 0 {
-        let share = offset(20);
-        if let Some(n) = info.get(share..) {
-            let name_at = offset_of(n, 8);
-            link.network_path = if name_at > 0x14 {
-                string_at(n, offset_of(n, 20), true)
-            } else {
-                string_at(n, name_at, false)
+        if let Some(n) = offset(20).and_then(|o| info.get(o..)) {
+            let name_at = valid_offset(n, 8, 0x14);
+            link.network_path = match name_at {
+                Some(at) if at > 0x14 => valid_offset(n, 20, 0x1c)
+                    .map(|o| string_at(n, o, true))
+                    .unwrap_or_default(),
+                Some(at) => string_at(n, at, false),
+                None => String::new(),
             };
         }
     }
-    link.common_path = if header >= 0x24 && offset(32) != 0 {
-        string_at(info, offset(32), true)
-    } else {
-        string_at(info, offset(24), false)
+    link.common_path = match (unicode.then(|| offset(32)).flatten(), offset(24)) {
+        (Some(at), _) => string_at(info, at, true),
+        (None, Some(at)) => string_at(info, at, false),
+        (None, None) => String::new(),
     };
 }
 
-fn offset_of(data: &[u8], at: usize) -> usize {
-    u32_at(data, at).map_or(0, |n| n as usize)
+/// The offset stored at `at` in `data`, when it points at or after
+/// `min` (the end of the structure's header) and inside `data`.
+fn valid_offset(data: &[u8], at: usize, min: usize) -> Option<usize> {
+    u32_at(data, at)
+        .map(|n| n as usize)
+        .filter(|&o| o >= min && o < data.len())
 }
 
 /// Read the extra data blocks from `at`; returns where they end.
