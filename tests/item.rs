@@ -237,7 +237,7 @@ fn a_library_folder_has_its_folders_times_and_reference() {
     .unwrap();
     let size = usize::from(u16::from_le_bytes([link[76], link[77]]));
     let list = &link[78..78 + size];
-    let folder = decode(*shell::item::items(list).last().unwrap());
+    let folder = decode(shell::item::items(list).last().unwrap());
     assert_eq!(folder.mft, Some((714, 1)));
     let mut typed = vec![0x11, 0x10, 0, 0]; // VT_VECTOR | VT_UI1
     typed.extend_from_slice(&(list.len() as u32).to_le_bytes());
