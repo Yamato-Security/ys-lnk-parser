@@ -14,8 +14,18 @@ include = ["/src", "/README.md", "/LICENSE-APACHE", "/LICENSE-MIT"]
 [lib]
 name = "shell"
 
+[features]
+default = ["guid-names"]
+# Names of the GUIDs of shell items and links, from Eric Zimmerman's
+# GuidMapping table (about 900 KB).
+guid-names = []
+# Code pages other than Windows-1252 (932 Japanese, 936, 949, 950, 1250-1258,
+# ...) for ANSI strings.
+codepages = ["dep:encoding_rs", "dep:codepage"]
+
 [dependencies]
-common = { package = "sootmark-common", version = "0.3.7" }
+codepage = { version = "0.1", optional = true }
+encoding_rs = { version = "0.8", optional = true }
 
 [dev-dependencies]
 proptest = "1"
