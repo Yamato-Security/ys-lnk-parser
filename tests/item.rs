@@ -47,3 +47,30 @@ fn an_app_under_applications_is_named_from_its_properties() {
     assert_eq!(decoded.kind, Kind::PropertyView);
     assert_eq!(decoded.name, "Settings");
 }
+
+#[test]
+fn a_damaged_storage_size_does_not_stop_the_search() {
+    // A size that runs past the store in front of the only signature: the
+    // search for the next storage used to find the same one again, forever.
+    let mut store = display_name_store("Calculator");
+    store[..4].copy_from_slice(&0x0084_ffffu32.to_le_bytes());
+    let mut item = vec![0, 0, 0x00, 0x00, 0, 0];
+    item.extend_from_slice(b"APPS");
+    item.extend_from_slice(&store);
+    let len = item.len() as u16;
+    item[..2].copy_from_slice(&len.to_le_bytes());
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::PropertyView);
+    assert_eq!(decoded.name, "");
+
+    // and a good storage after a damaged one is still found
+    let mut two = display_name_store("Damaged");
+    two[..4].copy_from_slice(&0x0084_ffffu32.to_le_bytes());
+    two.extend_from_slice(&display_name_store("Notepad"));
+    let mut item = vec![0, 0, 0x00, 0x00, 0, 0];
+    item.extend_from_slice(b"APPS");
+    item.extend_from_slice(&two);
+    let len = item.len() as u16;
+    item[..2].copy_from_slice(&len.to_le_bytes());
+    assert_eq!(decode(&item).name, "Notepad");
+}

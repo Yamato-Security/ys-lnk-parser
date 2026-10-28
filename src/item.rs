@@ -370,9 +370,11 @@ fn display_name(store: &[u8]) -> Option<String> {
     let mut at = 0;
     while let Some(size) = u32_at(store, at).map(|n| n as usize) {
         if size < 24 || at + size > store.len() {
-            // Storages may be preceded by a small header: find the next.
-            let next = store.get(at + 1..)?.windows(4).position(|w| w == b"1SPS")?;
-            at = at + 1 + next - 4;
+            // Storages may be preceded by a small header: find the next
+            // signature after this one's, so that the search moves on even
+            // when the size in front of it is damaged.
+            let next = store.get(at + 5..)?.windows(4).position(|w| w == b"1SPS")?;
+            at = at + 1 + next;
             continue;
         }
         let storage = &store[at..at + size];
