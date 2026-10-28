@@ -264,8 +264,7 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
             Some(0xbeeb_ee00 | 0x1014_1981 | 0x5350_5041)
         ) =>
         {
-            out.kind = Kind::PropertyView;
-            out.name = display_name(item.get(10..).unwrap_or_default()).unwrap_or_default();
+            property_view(item, &mut out, depth, code_page);
         }
         0x00 if item.get(4..8) == Some(b"AugM") => cd_burn(item, &mut out, depth, code_page),
         0x01 if u32_at(item, 4) == Some(0x39de_2184) => {
@@ -442,16 +441,46 @@ fn cd_burn(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
     }
 }
 
-/// `System.ItemNameDisplay` (FMTID `{B725F130-…}`, id 10) from a serialized
-/// property store, which may be preceded by a small header.
-fn display_name(store: &[u8]) -> Option<String> {
-    property::parse(store, 1252)
-        .into_iter()
-        .find(|p| p.canonical_name() == Some("System.ItemNameDisplay"))
-        .and_then(|p| match p.value {
-            property::Value::Text(text) => Some(text),
-            _ => None,
-        })
+/// A view with its own properties: named by its display name
+/// (`System.ItemNameDisplay`). A library's folder also holds its own path as
+/// an item list (property 32 of `{28636AA6-953D-11D2-B5D6-00C04FD918D0}`),
+/// whose last file entry is the folder: its times and NTFS reference are the
+/// view's, where Eric Zimmerman's tools take a target's MFT entry from.
+fn property_view(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
+    out.kind = Kind::PropertyView;
+    let store = property::parse(item.get(10..).unwrap_or_default(), 1252);
+    for p in store {
+        match (p.canonical_name(), p.format_id.as_str(), p.id, p.value) {
+            (Some("System.ItemNameDisplay"), _, _, property::Value::Text(text))
+                if out.name.is_empty() =>
+            {
+                out.name = text;
+            }
+            (_, "{28636AA6-953D-11D2-B5D6-00C04FD918D0}", 32, property::Value::List(bytes))
+                if depth < MAX_NESTING =>
+            {
+                let list: Vec<u8> = bytes
+                    .iter()
+                    .map_while(|b| match b {
+                        property::Value::UInt(b) => u8::try_from(*b).ok(),
+                        _ => None,
+                    })
+                    .collect();
+                let folder = items(&list)
+                    .into_iter()
+                    .rev()
+                    .map(|i| decode_at(i, depth + 1, code_page))
+                    .find(|i| matches!(i.kind, Kind::File | Kind::Directory));
+                if let Some(folder) = folder {
+                    out.modified = folder.modified;
+                    out.created = folder.created;
+                    out.accessed = folder.accessed;
+                    out.mft = folder.mft;
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 fn uri(item: &[u8], code_page: u16) -> String {

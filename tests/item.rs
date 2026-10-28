@@ -205,3 +205,82 @@ fn nested_burn_items_are_bounded() {
     }
     assert_eq!(decode(&item).kind, Kind::CdBurn);
 }
+
+/// A property storage of one value: `fmtid`, property `id`, and the typed
+/// value (its type, padding, then the data).
+fn storage(fmtid: [u8; 16], id: u32, typed: &[u8]) -> Vec<u8> {
+    let mut value = Vec::new();
+    value.extend_from_slice(&((9 + typed.len()) as u32).to_le_bytes());
+    value.extend_from_slice(&id.to_le_bytes());
+    value.push(0);
+    value.extend_from_slice(typed);
+    let mut storage = vec![0; 4];
+    storage.extend_from_slice(b"1SPS");
+    storage.extend_from_slice(&fmtid);
+    storage.extend(value);
+    storage.extend_from_slice(&0u32.to_le_bytes());
+    let len = storage.len() as u32;
+    storage[..4].copy_from_slice(&len.to_le_bytes());
+    storage
+}
+
+#[test]
+fn a_library_folder_has_its_folders_times_and_reference() {
+    // A library's folder (class 0x00, 0x10141981 at offset 6): its name, and
+    // its own path as an item list in property 32 of {28636AA6-…}, here the
+    // items of Eric Zimmerman's WinVista "Sample Pictures" link, whose last
+    // item is the folder (MFT entry 714).
+    let link = std::fs::read(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/lnk/WinVista/Sample Pictures.lnk"
+    ))
+    .unwrap();
+    let size = usize::from(u16::from_le_bytes([link[76], link[77]]));
+    let list = &link[78..78 + size];
+    let folder = decode(*shell::item::items(list).last().unwrap());
+    assert_eq!(folder.mft, Some((714, 1)));
+    let mut typed = vec![0x11, 0x10, 0, 0]; // VT_VECTOR | VT_UI1
+    typed.extend_from_slice(&(list.len() as u32).to_le_bytes());
+    typed.extend_from_slice(list);
+    typed.resize(typed.len().div_ceil(4) * 4, 0);
+    let delegate = [
+        0xa6, 0x6a, 0x63, 0x28, 0x3d, 0x95, 0xd2, 0x11, 0xb5, 0xd6, 0x00, 0xc0, 0x4f, 0xd9, 0x18,
+        0xd0,
+    ];
+    let mut item = vec![0, 0, 0x00, 0x00, 0, 0];
+    item.extend_from_slice(&0x1014_1981u32.to_le_bytes());
+    item.extend_from_slice(&display_name_store("Pictures"));
+    item.extend_from_slice(&storage(delegate, 32, &typed));
+    item.extend_from_slice(&[0; 8]);
+    let len = item.len() as u16;
+    item[..2].copy_from_slice(&len.to_le_bytes());
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::PropertyView);
+    assert_eq!(decoded.name, "Pictures");
+    assert_eq!(decoded.mft, Some((714, 1)));
+    assert_eq!(
+        (decoded.created, decoded.modified, decoded.accessed),
+        (folder.created, folder.modified, folder.accessed)
+    );
+    assert!(decoded.created.is_some());
+
+    // Two display names: the first, as before.
+    let mut two = vec![0, 0, 0x00, 0x00, 0, 0];
+    two.extend_from_slice(&0x1014_1981u32.to_le_bytes());
+    two.extend_from_slice(&display_name_store("First"));
+    two.extend_from_slice(&display_name_store("Second"));
+    two.extend_from_slice(&[0; 8]);
+    let len = two.len() as u16;
+    two[..2].copy_from_slice(&len.to_le_bytes());
+    assert_eq!(decode(&two).name, "First");
+
+    // Another property 32, or none: no reference.
+    let mut other = item.clone();
+    let at = other
+        .windows(4)
+        .rposition(|w| w == 32u32.to_le_bytes())
+        .unwrap();
+    other[at] = 33;
+    assert_eq!(decode(&other).mft, None);
+    assert_eq!(decode(&other).name, "Pictures");
+}
