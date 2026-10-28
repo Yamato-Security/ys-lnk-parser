@@ -1,0 +1,188 @@
+{
+    "data": {
+        "relative_path": "..\\AppData\\Roaming\\.minecraft"
+    },
+    "extra": {
+        "DISTRIBUTED_LINK_TRACKER_BLOCK": {
+            "birth_droid_file_identifier": "43633D26-86A9-11EA-9C2D-B8AEED8E1A7A",
+            "birth_droid_volume_identifier": "F12D3570-03C2-43E3-86FC-C75D680751B6",
+            "droid_file_identifier": "43633D26-86A9-11EA-9C2D-B8AEED8E1A7A",
+            "droid_volume_identifier": "F12D3570-03C2-43E3-86FC-C75D680751B6",
+            "length": 88,
+            "machine_identifier": "desktop-eie2fiq",
+            "size": 96,
+            "version": 0
+        },
+        "ENVIRONMENTAL_VARIABLES_LOCATION_BLOCK": {
+            "size": 788,
+            "target_ansi": "C:\\Users\\%USERNAME%\\AppData\\Roaming\\.minecraft",
+            "target_unicode": "C:\\Users\\%USERNAME%\\AppData\\Roaming\\.minecraft"
+        },
+        "METADATA_PROPERTIES_BLOCK": {
+            "property_store": [
+                {
+                    "format_id": "DABD30ED-0043-4789-A7F8-D013A4736622",
+                    "serialized_property_values": [
+                        {
+                            "id": 100,
+                            "value": "Roaming (C:\\Usu\u00e1rios\\Jonathan\\AppData)",
+                            "value_size": 97,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 125,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "B725F130-47EF-101A-A5F1-02608C9EEBAC",
+                    "serialized_property_values": [
+                        {
+                            "id": 10,
+                            "value": ".minecraft",
+                            "value_size": 41,
+                            "value_type": "VT_LPWSTR"
+                        },
+                        {
+                            "id": 15,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        },
+                        {
+                            "id": 4,
+                            "value": "Pasta de arquivos",
+                            "value_size": 53,
+                            "value_type": "VT_LPWSTR"
+                        },
+                        {
+                            "id": 14,
+                            "value": null,
+                            "value_size": 21,
+                            "value_type": "VT_FILETIME"
+                        }
+                    ],
+                    "storage_size": 164,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "28636AA6-953D-11D2-B5D6-00C04FD918D0",
+                    "serialized_property_values": [
+                        {
+                            "id": 30,
+                            "value": "C:\\Users\\Jonathan\\AppData\\Roaming\\.minecraft",
+                            "value_size": 109,
+                            "value_type": "VT_LPWSTR"
+                        }
+                    ],
+                    "storage_size": 137,
+                    "version": "0x53505331"
+                },
+                {
+                    "format_id": "446D16B1-8DAD-4870-A748-402EA43D788C",
+                    "serialized_property_values": [
+                        {
+                            "id": 104,
+                            "value": null,
+                            "value_size": 29,
+                            "value_type": "VT_CLSID"
+                        }
+                    ],
+                    "storage_size": 57,
+                    "version": "0x53505331"
+                }
+            ],
+            "size": 495
+        }
+    },
+    "header": {
+        "accessed_time": "2020-04-26T10:29:23+00:00",
+        "creation_time": "2018-08-30T23:42:23+00:00",
+        "file_flags": [
+            "FILE_ATTRIBUTE_DIRECTORY"
+        ],
+        "file_size": 12288,
+        "guid": "00021401-0000-0000-C000-000000000046",
+        "header_size": 76,
+        "hotkey": "UNSET - UNSET {0x0000}",
+        "icon_index": 0,
+        "link_flags": [
+            "HasTargetIDList",
+            "HasLinkInfo",
+            "HasRelativePath",
+            "IsUnicode",
+            "HasExpString",
+            "EnableTargetMetadata"
+        ],
+        "modified_time": "2020-04-26T10:29:23+00:00",
+        "r_file_flags": 16,
+        "r_hotkey": 0,
+        "r_link_flags": 524939,
+        "reserved0": 0,
+        "reserved1": 0,
+        "reserved2": 0,
+        "windowstyle": "SW_SHOWNORMAL"
+    },
+    "link_info": {
+        "common_network_relative_link_offset": 0,
+        "common_path_suffix": "",
+        "common_path_suffix_offset": 90,
+        "link_info_flags": 1,
+        "link_info_header_size": 28,
+        "link_info_size": 91,
+        "local_base_path": "C:\\Users\\Jonathan\\AppData\\Roaming\\.minecraft",
+        "local_base_path_offset": 45,
+        "location": "Local",
+        "location_info": {
+            "drive_serial_number": "0x9e31fc72",
+            "drive_type": "DRIVE_FIXED",
+            "r_drive_type": 3,
+            "volume_id_size": 17,
+            "volume_label": "",
+            "volume_label_offset": 16
+        },
+        "volume_id_offset": 28
+    },
+    "size": 1984,
+    "target": {
+        "index": 78,
+        "items": [
+            {
+                "class": "Root Folder",
+                "guid": "59031A47-3F72-44A7-89C5-5595FE6B30EE",
+                "sort_index": "Users",
+                "sort_index_value": 68
+            },
+            {
+                "class": "Users files folder",
+                "delegate_class_id": "5E591A74-DF96-48D3-8D67-1733BCEE28BA",
+                "delegate_folder_id": "DFFACDC5-679F-4156-8947-C5C76BC0B67F",
+                "file_entry": {
+                    "class": "File entry",
+                    "file_attribute_flags": 18,
+                    "file_size": 0,
+                    "flags": "Is directory",
+                    "modification_time": "2019-01-16T18:17:20+00:00",
+                    "primary_name": "AppData"
+                },
+                "signature": "CFSF"
+            },
+            {
+                "class": "File entry",
+                "file_attribute_flags": 48,
+                "file_size": 0,
+                "flags": "Is directory",
+                "modification_time": "2020-04-16T05:22:08+00:00",
+                "primary_name": "Roaming"
+            },
+            {
+                "class": "File entry",
+                "file_attribute_flags": 16,
+                "file_size": 0,
+                "flags": "Is directory",
+                "modification_time": "2020-04-26T10:29:24+00:00",
+                "primary_name": ".minecraft"
+            }
+        ],
+        "size": 372
+    }
+}

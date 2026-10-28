@@ -8,6 +8,8 @@
 //! typed (MS-OLEPS `TypedPropertyValue`): integers, floating point numbers,
 //! booleans, strings, times, GUIDs, blobs and vectors of these.
 
+use std::fmt::Write;
+
 use crate::codepage;
 use crate::item::guid;
 use crate::{u16_at, u32_at, u64_at};
@@ -80,7 +82,10 @@ impl Value {
             Value::UInt(n) | Value::Time(n) => n.to_string(),
             Value::Float(f) => f.to_string(),
             Value::Text(s) | Value::Guid(s) => s.clone(),
-            Value::Bytes(b) => b.iter().map(|x| format!("{x:02x}")).collect(),
+            Value::Bytes(b) => b.iter().fold(String::new(), |mut hex, x| {
+                let _ = write!(hex, "{x:02x}");
+                hex
+            }),
             Value::List(values) => values
                 .iter()
                 .map(Value::display)
@@ -397,8 +402,8 @@ mod tests {
         assert_eq!(props[0].value, Value::Text("alice".into()));
         assert_eq!(props[1].value, Value::Text("found".into()));
         // truncated and empty stores
-        assert!(parse(&store[..30], 1252).is_empty());
-        assert!(parse(&[], 1252).is_empty());
+        assert_eq!(parse(&store[..30], 1252), []);
+        assert_eq!(parse(&[], 1252), []);
         // a vector count far beyond the data
         let mut huge = vec![0x13, 0x10, 0, 0];
         huge.extend_from_slice(&u32::MAX.to_le_bytes());

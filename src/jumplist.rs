@@ -16,7 +16,7 @@ use crate::lnk::{self, Link};
 use crate::{u16_at, u32_at, u64_at};
 
 /// One `DestList` entry and the link it describes.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Destination {
     /// Its entry number (its LNK stream's name, in hexadecimal).
     pub entry: u32,
@@ -51,7 +51,7 @@ pub struct Destination {
 }
 
 /// A parsed automatic jump list.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Automatic {
     /// `DestList` format version: 1 (Windows 7, 8), 3 or 4 (Windows 10+).
     pub version: u32,
@@ -116,12 +116,7 @@ pub fn automatic(data: &[u8]) -> Result<Automatic, compound::Error> {
             .collect();
         let number = u32_at(entry, 88).unwrap_or(0);
         let pin = u32_at(entry, 108).filter(|&p| p != u32::MAX);
-        let link = if !seen.insert(number) {
-            list.problems.push(format!(
-                "DestList entry {position} repeats stream {number:x}"
-            ));
-            None
-        } else {
+        let link = if seen.insert(number) {
             match file.stream(&format!("{number:x}")) {
                 Ok(Some(bytes)) => match lnk::parse(&bytes) {
                     Ok(link) => Some(link),
@@ -136,6 +131,11 @@ pub fn automatic(data: &[u8]) -> Result<Automatic, compound::Error> {
                     None
                 }
             }
+        } else {
+            list.problems.push(format!(
+                "DestList entry {position} repeats stream {number:x}"
+            ));
+            None
         };
         let (droid_created, mac) = item::guid_v1(&entry[24..40]).unwrap_or_default();
         list.destinations.push(Destination {
@@ -189,7 +189,7 @@ pub enum Kind {
 }
 
 /// A custom jump list category.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Category {
     /// What it is.
     pub kind: Kind,
@@ -198,7 +198,7 @@ pub struct Category {
 }
 
 /// A parsed custom jump list.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Custom {
     /// The categories, in order.
     pub categories: Vec<Category>,

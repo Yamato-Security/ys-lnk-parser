@@ -29,6 +29,8 @@ encoding_rs = { version = "0.8", optional = true }
 
 [dev-dependencies]
 proptest = "1"
+# Reading LnkParse3's expected output (tests/fixtures/lnkparse3/).
+serde_json = "1"
 
 [lints.rust]
 unsafe_code = "forbid"
