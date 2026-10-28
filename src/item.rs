@@ -33,6 +33,9 @@ pub enum Kind {
     /// A view with its own properties ("Users property view": control
     /// panel pages and search results), named by its display name.
     PropertyView,
+    /// A file or folder in the staging area of a CD or DVD burn (`AugM`),
+    /// named from the file entry it wraps.
+    CdBurn,
     /// An item whose class this parser doesn't know: its class byte.
     Other(u8),
 }
@@ -264,6 +267,7 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
             out.kind = Kind::PropertyView;
             out.name = display_name(item.get(10..).unwrap_or_default()).unwrap_or_default();
         }
+        0x00 if item.get(4..8) == Some(b"AugM") => cd_burn(item, &mut out, depth, code_page),
         0x01 if u32_at(item, 4) == Some(0x39de_2184) => {
             out.kind = Kind::ControlPanelCategory;
             control_panel_category(u32_at(item, 8).unwrap_or(u32::MAX)).clone_into(&mut out.name);
@@ -403,6 +407,39 @@ fn users_files_folder(item: &[u8], out: &mut Item, depth: usize, code_page: u16)
     out.accessed = decoded.accessed;
     out.mft = decoded.mft;
     out.extension_blocks = decoded.extension_blocks;
+}
+
+/// An item staged for burning: after `AugM`, a count of 16-bit values and
+/// the values, then file entries (each with its size; a size of 0 or 1
+/// separates them). Named from the last one, as Eric Zimmerman's tools do.
+fn cd_burn(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
+    out.kind = Kind::CdBurn;
+    if depth >= MAX_NESTING {
+        return;
+    }
+    let Some(mut at) =
+        u32_at(item, 8).and_then(|n| usize::try_from(n).ok()?.checked_mul(2)?.checked_add(12))
+    else {
+        return;
+    };
+    while let Some(size) = u16_at(item, at).map(usize::from) {
+        if size < 2 {
+            at += 2;
+            continue;
+        }
+        // An entry longer than what is left is read as far as it goes.
+        let entry = &item[at..item.len().min(at + size)];
+        let decoded = decode_at(entry, depth + 1, code_page);
+        if matches!(decoded.kind, Kind::File | Kind::Directory) && !decoded.name.is_empty() {
+            out.name = decoded.name;
+            out.modified = decoded.modified;
+            out.created = decoded.created;
+            out.accessed = decoded.accessed;
+            out.mft = decoded.mft;
+            out.extension_blocks = decoded.extension_blocks;
+        }
+        at += size;
+    }
 }
 
 /// `System.ItemNameDisplay` (FMTID `{B725F130-…}`, id 10) from a serialized

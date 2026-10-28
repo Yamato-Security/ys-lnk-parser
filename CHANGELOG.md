@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- `item::Kind::CdBurn`: a file or folder staged for burning to a CD or DVD (an `AugM` item), named
+  from the file entry it wraps, with its times and NTFS reference. It was an unknown class 0 item,
+  and a target path ended at the drive (`This PC\D:\` for `This PC\D:\autorun.inf`).
+  (@YamatoSecurity)
+
 ## 0.4.0 (ys-lnk-parser)
 
 First version of Yamato Security's fork, based on sootmark-shell 0.3.0 (Sootmark/shell dc16337).
