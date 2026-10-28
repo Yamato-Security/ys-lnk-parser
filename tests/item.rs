@@ -118,3 +118,169 @@ fn nested_delegate_items_are_bounded() {
     let decoded = decode(&item);
     assert_eq!(decoded.kind, Kind::UsersFilesFolder);
 }
+
+#[test]
+fn an_item_staged_for_burning_is_named_from_its_file_entry() {
+    // `D:\autorun.inf` in a Windows 10 jump list (jumplist_parser's
+    // 5f7b5f1e01b83767): four 16-bit values, then the file's entry (class
+    // 0x32, its long name in a BEEF0004 block), then a separator.
+    let item = hex(concat!(
+        "780000004175674d04000000010000000000010062003200640000007e506bb7",
+        "01006175746f72756e2e696e6600480009000400efbe7e506bb7000000002e00",
+        "0000080100000000000000000000000000000000000000000000000061007500",
+        "74006f00720075006e002e0069006e00660000001a000000",
+    ));
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::CdBurn);
+    assert_eq!(decoded.name, "autorun.inf");
+    assert!(decoded.modified.is_some());
+    assert!(decoded.created.is_some());
+    assert_eq!(decoded.extension_blocks, 1);
+
+    // Eric Zimmerman's sample (ExtensionBlocks' ShellItemSamples.txt, MIT):
+    // a folder's entry twice, the second without times.
+    let sample = hex(concat!(
+        "0a0100004175674d02000000020000007200310000000000093550131100414e",
+        "5449474f7e3200004c0003000400efbe09355013000000001400000041004e00",
+        "5400490047004f004e0045002000430048004100520041004300540045005200",
+        "5300200046004f004c0044004500520000002a000e0000000a00efbe00000000",
+        "180000008400310000000000000000001000414e5449474f4e45204348415241",
+        "435445525320464f4c44455200004c0003000400efbe00000000000000001400",
+        "000041004e005400490047004f004e0045002000430048004100520041004300",
+        "5400450052005300200046004f004c0044004500520000002a000e0000000a00",
+        "efbe010000002a0000000000",
+    ));
+    let decoded = decode(&sample);
+    assert_eq!(decoded.kind, Kind::CdBurn);
+    assert_eq!(decoded.name, "ANTIGONE CHARACTERS FOLDER");
+    assert_eq!(decoded.modified, None);
+
+    // The values skipped by their count, whatever they hold; separators of
+    // size 0 or 1.
+    let rebuilt = |values: &[u16], separator: &[u8]| {
+        let mut built = item[..8].to_vec();
+        built.extend_from_slice(&(values.len() as u32).to_le_bytes());
+        built.extend(values.iter().flat_map(|v| v.to_le_bytes()));
+        built.extend_from_slice(separator);
+        built.extend_from_slice(&item[20..]);
+        let len = built.len() as u16;
+        built[..2].copy_from_slice(&len.to_le_bytes());
+        decode(&built).name
+    };
+    assert_eq!(rebuilt(&[0x0123], &[]), "autorun.inf");
+    assert_eq!(rebuilt(&[], &[1, 0]), "autorun.inf");
+    assert_eq!(rebuilt(&[7, 7, 7], &[0, 0, 1, 0]), "autorun.inf");
+
+    // An entry without a name after it doesn't unname the item.
+    let mut nameless = item.clone();
+    nameless.extend_from_slice(&[4, 0, 0x32, 0]);
+    let len = nameless.len() as u16;
+    nameless[..2].copy_from_slice(&len.to_le_bytes());
+    assert_eq!(decode(&nameless).name, "autorun.inf");
+
+    // Damage: a count past the end, an entry cut short, nothing after the
+    // signature.
+    let mut huge = item.clone();
+    huge[8..12].copy_from_slice(&u32::MAX.to_le_bytes());
+    assert_eq!(decode(&huge).name, "");
+    assert_eq!(decode(&item[..60]).kind, Kind::CdBurn);
+    assert_eq!(decode(&item[..8]).name, "");
+}
+
+#[test]
+fn nested_burn_items_are_bounded() {
+    // An `AugM` item wrapping an `AugM` item, as deep as 64 KiB allows.
+    let mut item = vec![0, 0, 0x32, 0];
+    loop {
+        let mut outer = vec![0, 0, 0x00, 0];
+        outer.extend_from_slice(b"AugM");
+        outer.extend_from_slice(&0u32.to_le_bytes());
+        outer.extend_from_slice(&item);
+        if outer.len() > 0xffff {
+            break;
+        }
+        let len = outer.len() as u16;
+        outer[..2].copy_from_slice(&len.to_le_bytes());
+        item = outer;
+    }
+    assert_eq!(decode(&item).kind, Kind::CdBurn);
+}
+
+/// A property storage of one value: `fmtid`, property `id`, and the typed
+/// value (its type, padding, then the data).
+fn storage(fmtid: [u8; 16], id: u32, typed: &[u8]) -> Vec<u8> {
+    let mut value = Vec::new();
+    value.extend_from_slice(&((9 + typed.len()) as u32).to_le_bytes());
+    value.extend_from_slice(&id.to_le_bytes());
+    value.push(0);
+    value.extend_from_slice(typed);
+    let mut storage = vec![0; 4];
+    storage.extend_from_slice(b"1SPS");
+    storage.extend_from_slice(&fmtid);
+    storage.extend(value);
+    storage.extend_from_slice(&0u32.to_le_bytes());
+    let len = storage.len() as u32;
+    storage[..4].copy_from_slice(&len.to_le_bytes());
+    storage
+}
+
+#[test]
+fn a_library_folder_has_its_folders_times_and_reference() {
+    // A library's folder (class 0x00, 0x10141981 at offset 6): its name, and
+    // its own path as an item list in property 32 of {28636AA6-…}, here the
+    // items of Eric Zimmerman's WinVista "Sample Pictures" link, whose last
+    // item is the folder (MFT entry 714).
+    let link = std::fs::read(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/lnk/WinVista/Sample Pictures.lnk"
+    ))
+    .unwrap();
+    let size = usize::from(u16::from_le_bytes([link[76], link[77]]));
+    let list = &link[78..78 + size];
+    let folder = decode(shell::item::items(list).last().unwrap());
+    assert_eq!(folder.mft, Some((714, 1)));
+    let mut typed = vec![0x11, 0x10, 0, 0]; // VT_VECTOR | VT_UI1
+    typed.extend_from_slice(&(list.len() as u32).to_le_bytes());
+    typed.extend_from_slice(list);
+    typed.resize(typed.len().div_ceil(4) * 4, 0);
+    let delegate = [
+        0xa6, 0x6a, 0x63, 0x28, 0x3d, 0x95, 0xd2, 0x11, 0xb5, 0xd6, 0x00, 0xc0, 0x4f, 0xd9, 0x18,
+        0xd0,
+    ];
+    let mut item = vec![0, 0, 0x00, 0x00, 0, 0];
+    item.extend_from_slice(&0x1014_1981u32.to_le_bytes());
+    item.extend_from_slice(&display_name_store("Pictures"));
+    item.extend_from_slice(&storage(delegate, 32, &typed));
+    item.extend_from_slice(&[0; 8]);
+    let len = item.len() as u16;
+    item[..2].copy_from_slice(&len.to_le_bytes());
+    let decoded = decode(&item);
+    assert_eq!(decoded.kind, Kind::PropertyView);
+    assert_eq!(decoded.name, "Pictures");
+    assert_eq!(decoded.mft, Some((714, 1)));
+    assert_eq!(
+        (decoded.created, decoded.modified, decoded.accessed),
+        (folder.created, folder.modified, folder.accessed)
+    );
+    assert!(decoded.created.is_some());
+
+    // Two display names: the first, as before.
+    let mut two = vec![0, 0, 0x00, 0x00, 0, 0];
+    two.extend_from_slice(&0x1014_1981u32.to_le_bytes());
+    two.extend_from_slice(&display_name_store("First"));
+    two.extend_from_slice(&display_name_store("Second"));
+    two.extend_from_slice(&[0; 8]);
+    let len = two.len() as u16;
+    two[..2].copy_from_slice(&len.to_le_bytes());
+    assert_eq!(decode(&two).name, "First");
+
+    // Another property 32, or none: no reference.
+    let mut other = item.clone();
+    let at = other
+        .windows(4)
+        .rposition(|w| w == 32u32.to_le_bytes())
+        .unwrap();
+    other[at] = 33;
+    assert_eq!(decode(&other).mft, None);
+    assert_eq!(decode(&other).name, "Pictures");
+}
