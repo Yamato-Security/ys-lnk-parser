@@ -10,8 +10,6 @@ use shell::compound::{CompoundFile, Entry};
 
 /// `Document.doc` and the eight automatic jump lists.
 const FILES: usize = 9;
-/// 100 ns ticks from 1601-01-01 (FILETIME's epoch) to 1970-01-01.
-const FILETIME_UNIX_OFFSET: i64 = 116_444_736_000_000_000;
 
 fn fixtures(path: &str) -> String {
     format!("{}/tests/fixtures/{path}", env!("CARGO_MANIFEST_DIR"))
@@ -31,9 +29,9 @@ fn escaped(path: &str) -> String {
         .collect()
 }
 
-/// A time back to its FILETIME, 0 when not recorded.
-fn filetime(time: Option<common::time::Ts>) -> i64 {
-    time.map_or(0, |t| t.ticks().unwrap() + FILETIME_UNIX_OFFSET)
+/// A time as a FILETIME, 0 when not recorded.
+fn filetime(time: Option<u64>) -> i64 {
+    time.map_or(0, |t| t as i64)
 }
 
 fn line(file: &str, entry: &Entry) -> String {
@@ -81,8 +79,9 @@ fn a_storage_holds_its_children() {
     assert_eq!(children.len(), 1);
     assert_eq!(file.entries[store].parent, index("Root Entry"));
     assert_eq!(
-        file.entries[store].created.and_then(|t| t.to_iso8601()),
-        Some("2013-05-16T02:29:49.7040000Z".to_owned())
+        // 2013-05-16 02:29:49.704 UTC
+        file.entries[store].created,
+        Some(130_131_449_897_040_000)
     );
     let summary = &file.entries[index("Root Entry/\u{5}SummaryInformation").unwrap()];
     assert_eq!(
