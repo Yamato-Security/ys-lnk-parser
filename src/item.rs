@@ -147,7 +147,9 @@ fn ascii_until_nul(bytes: &[u8]) -> String {
 
 fn utf16_until_nul(bytes: &[u8]) -> (String, usize) {
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .take_while(|&u| u != 0)
         .collect();
@@ -273,12 +275,12 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         }
         _ => {}
     }
-    if out.name.is_empty() {
-        if let Some(g) = &out.guid {
-            // Named from Eric Zimmerman's table when his tools would name it,
-            // else the GUID itself.
-            out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
-        }
+    if out.name.is_empty()
+        && let Some(g) = &out.guid
+    {
+        // Named from the GUID name table when it names it, else the GUID
+        // itself.
+        out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
     }
     out
 }
@@ -410,7 +412,7 @@ fn users_files_folder(item: &[u8], out: &mut Item, depth: usize, code_page: u16)
 
 /// An item staged for burning: after `AugM`, a count of 16-bit values and
 /// the values, then file entries (each with its size; a size of 0 or 1
-/// separates them). Named from the last one, as Eric Zimmerman's tools do.
+/// separates them). Named from the last one.
 fn cd_burn(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
     out.kind = Kind::CdBurn;
     if depth >= MAX_NESTING {
@@ -445,7 +447,7 @@ fn cd_burn(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
 /// (`System.ItemNameDisplay`). A library's folder also holds its own path as
 /// an item list (property 32 of `{28636AA6-953D-11D2-B5D6-00C04FD918D0}`),
 /// whose last file entry is the folder: its times and NTFS reference are the
-/// view's, where Eric Zimmerman's tools take a target's MFT entry from.
+/// view's, where a target's MFT entry is taken from.
 fn property_view(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
     out.kind = Kind::PropertyView;
     let store = property::parse(item.get(10..).unwrap_or_default(), 1252);
@@ -494,8 +496,8 @@ fn uri(item: &[u8], code_page: u16) -> String {
     }
 }
 
-/// Root and known folders by class identifier, named as Eric Zimmerman's
-/// tools name them (only those checked against SBECmd, LECmd or JLECmd).
+/// Root and known folders by class identifier, named as forensic tools
+/// commonly name them (only those checked against their output).
 fn root_folder(guid: &str) -> Option<&'static str> {
     Some(match guid {
         "{031E4825-7B94-4DC3-B131-E946B44C8DD5}" => "UsersLibraries",
@@ -539,7 +541,8 @@ fn root_folder(guid: &str) -> Option<&'static str> {
     })
 }
 
-/// Control panel pages by class identifier (those checked against SBECmd).
+/// Control panel pages by class identifier (those checked against reference
+/// output).
 fn control_panel(guid: &str) -> Option<&'static str> {
     Some(match guid {
         "{025A5937-A6BE-4686-A844-36FE4BEC8B6D}" => "Power Options",

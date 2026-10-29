@@ -111,7 +111,7 @@ mod damage {
             data.truncate(cut % (data.len() + 1));
             if let Ok(file) = CompoundFile::parse(&data) {
                 for entry in &file.entries {
-                    prop_assert!(entry.parent.map_or(true, |p| p < file.entries.len()));
+                    prop_assert!(entry.parent.is_none_or(|p| p < file.entries.len()));
                     prop_assert!(entry.path.matches('/').count() < file.entries.len());
                     let _ = file.contents(entry);
                 }

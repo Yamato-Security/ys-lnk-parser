@@ -1,6 +1,6 @@
 //! LnkParse3's test links (MIT, Matúš Jasnický; `tests/fixtures/lnkparse3/`,
-//! with LnkParse3's output for each): the extra data blocks the Eric
-//! Zimmerman set holds few of (console, Darwin, icon environment, known and
+//! with LnkParse3's output for each): the extra data blocks the LNK test
+//! set holds few of (console, Darwin, icon environment, known and
 //! special folders, data after the terminal block, an unknown block), a
 //! command line hidden behind padding, network shares, and damaged links.
 //! Every field both parsers read is compared.

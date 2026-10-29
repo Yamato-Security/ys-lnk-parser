@@ -1,5 +1,5 @@
-//! What the oracle tests share: the fixtures, a CSV reader, and EZ Tools'
-//! display forms.
+//! What the oracle tests share: the fixtures, a CSV reader, and the
+//! oracles' display forms.
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -37,7 +37,7 @@ pub fn records(text: &str) -> Vec<HashMap<String, String>> {
         .collect()
 }
 
-/// FILETIME as LECmd prints it: `2015-12-16 16:39:14`; empty for 0.
+/// FILETIME as the oracle prints it: `2015-12-16 16:39:14`; empty for 0.
 pub fn when(filetime: u64) -> String {
     if filetime == 0 {
         return String::new();
@@ -61,7 +61,7 @@ pub fn when(filetime: u64) -> String {
     )
 }
 
-/// Whether an EZ Tools path matches ours, component by component, where
+/// Whether an oracle's path matches ours, component by component, where
 /// theirs isn't a display form: a localized resource string (`@shell32.dll,
 /// -21781` for "Program Files"), a short 8.3 name where the item holds the
 /// long one, or garbled text after an identifier it doesn't know (an ANSI

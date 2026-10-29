@@ -283,7 +283,7 @@ impl Link {
 
     /// The target's shell items as a path: `This PC\C:\Windows\notepad.exe`.
     /// A network item's leading backslashes are dropped after the first
-    /// item (`Network\server\share`), as LECmd joins them.
+    /// item (`Network\server\share`).
     #[must_use]
     pub fn target_path(&self) -> String {
         path(&self.target)
@@ -497,7 +497,9 @@ fn string_at(data: &[u8], at: usize, unicode: bool, code_page: u16) -> String {
 
 fn utf16(bytes: &[u8]) -> String {
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .take_while(|&u| u != 0)
         .collect();
@@ -699,10 +701,10 @@ fn link_info(info: &[u8], link: &mut Link, code_page: u16) {
             (None, None) => String::new(),
         };
     }
-    if flags & 2 != 0 {
-        if let Some(n) = offset(20).and_then(|o| info.get(o..)) {
-            network_link(n, link, code_page);
-        }
+    if flags & 2 != 0
+        && let Some(n) = offset(20).and_then(|o| info.get(o..))
+    {
+        network_link(n, link, code_page);
     }
     link.common_path = match (unicode.then(|| offset(32)).flatten(), offset(24)) {
         (Some(at), _) => string_at(info, at, true, code_page),

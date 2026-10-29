@@ -1,9 +1,9 @@
-//! LNK files against Eric Zimmerman's LECmd on his MIT test set (552
+//! LNK files against a reference LNK parser on the MIT test set (552
 //! links from Windows XP to 10, and a damaged file; `tests/fixtures/lnk/`,
-//! LECmd's output in `tests/fixtures/oracle/`): every column LECmd reports
-//! about the link and its target.
+//! its output in `tests/fixtures/oracle/`): every column it reports about
+//! the link and its target.
 //!
-//! Paths must agree component by component, except where LECmd shows a
+//! Paths must agree component by component, except where the oracle shows a
 //! display form (`common::path_agrees`).
 
 mod common;
@@ -13,9 +13,9 @@ use std::fs;
 use common::{fixtures, path_agrees, records, when};
 use shell::lnk;
 
-/// LECmd's names for what the crate keeps as numbers or spec names.
+/// The oracle's names for what the crate keeps as numbers or spec names.
 fn flags(link: &lnk::Link) -> String {
-    let lecmd = |name: &'static str| match name {
+    let spelled = |name: &'static str| match name {
         "HasLinkTargetIDList" => "HasTargetIdList",
         "HasDarwinID" => "HasDarwinId",
         "KeepLocalIDListForUNCTarget" => "KeepLocalIdListForUncTarget",
@@ -23,7 +23,7 @@ fn flags(link: &lnk::Link) -> String {
     };
     link.flag_names()
         .into_iter()
-        .map(lecmd)
+        .map(spelled)
         .collect::<Vec<_>>()
         .join(", ")
 }
@@ -69,8 +69,8 @@ fn drive(volume: Option<&lnk::Volume>) -> &'static str {
 }
 
 #[test]
-fn matches_lecmd() {
-    let oracle = records(&fs::read_to_string(fixtures().join("oracle/LECmd.csv")).unwrap());
+fn matches_the_oracle() {
+    let oracle = records(&fs::read_to_string(fixtures().join("oracle/lnk.csv")).unwrap());
     assert_eq!(oracle.len(), 552);
     for row in &oracle {
         let file = &row["SourceFile"];
@@ -82,7 +82,7 @@ fn matches_lecmd() {
             .blocks
             .iter()
             .map(|&b| match lnk::block_name(b) {
-                // LECmd's spelling.
+                // The oracle's spelling.
                 "TrackerDataBlock" => "TrackerDataBaseBlock",
                 other => other,
             })

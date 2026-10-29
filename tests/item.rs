@@ -1,6 +1,6 @@
 //! Shell items built here, for kinds the test sets hold too few of.
 
-use shell::item::{decode, Kind};
+use shell::item::{Kind, decode};
 
 /// A property storage (`1SPS`) of `System.ItemNameDisplay` (FMTID
 /// `{B725F130-…}`, id 10) holding `name`.
@@ -78,7 +78,7 @@ fn a_damaged_storage_size_does_not_stop_the_search() {
 #[test]
 fn an_unterminated_unicode_short_name_ends_at_the_extension_block() {
     // A Windows XP folder (class 0x35: a directory with a Unicode name)
-    // from Eric Zimmerman's test set: the short name "Échantill" runs into
+    // from the LNK test set: the short name "Échantill" runs into
     // the BEEF0004 block, whose long name is the folder's.
     let item = hex(concat!(
         "62003500000000001431180a1100c9006300680061006e00740069006c006c00",
@@ -137,7 +137,7 @@ fn an_item_staged_for_burning_is_named_from_its_file_entry() {
     assert!(decoded.created.is_some());
     assert_eq!(decoded.extension_blocks, 1);
 
-    // Eric Zimmerman's sample (ExtensionBlocks' ShellItemSamples.txt, MIT):
+    // A published sample (MIT):
     // a folder's entry twice, the second without times.
     let sample = hex(concat!(
         "0a0100004175674d02000000020000007200310000000000093550131100414e",
@@ -228,7 +228,7 @@ fn storage(fmtid: [u8; 16], id: u32, typed: &[u8]) -> Vec<u8> {
 fn a_library_folder_has_its_folders_times_and_reference() {
     // A library's folder (class 0x00, 0x10141981 at offset 6): its name, and
     // its own path as an item list in property 32 of {28636AA6-…}, here the
-    // items of Eric Zimmerman's WinVista "Sample Pictures" link, whose last
+    // items of the test set's WinVista "Sample Pictures" link, whose last
     // item is the folder (MFT entry 714).
     let link = std::fs::read(concat!(
         env!("CARGO_MANIFEST_DIR"),

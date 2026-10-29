@@ -1,8 +1,7 @@
 //! Names of the GUIDs shell items and links hold (root and known folders,
-//! control panel pages, shell extensions, …), from Eric Zimmerman's
-//! GuidMapping (MIT licence, `src/guid_names/LICENSE`; the table at
-//! EricZimmerman/GuidMapping e2c9361), so that a folder the shell names by
-//! a GUID gets the name his tools give it.
+//! control panel pages, shell extensions, …), from a GUID name table (MIT
+//! licence, `src/guid_names/LICENSE`), so that a folder the shell names by
+//! a GUID gets the name forensic tools commonly give it.
 //!
 //! Behind the `guid-names` feature (on by default): the table is about
 //! 900 KB.
