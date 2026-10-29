@@ -147,7 +147,9 @@ fn ascii_until_nul(bytes: &[u8]) -> String {
 
 fn utf16_until_nul(bytes: &[u8]) -> (String, usize) {
     let units: Vec<u16> = bytes
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|c| u16::from_le_bytes([c[0], c[1]]))
         .take_while(|&u| u != 0)
         .collect();
@@ -273,12 +275,12 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         }
         _ => {}
     }
-    if out.name.is_empty() {
-        if let Some(g) = &out.guid {
-            // Named from Eric Zimmerman's table when his tools would name it,
-            // else the GUID itself.
-            out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
-        }
+    if out.name.is_empty()
+        && let Some(g) = &out.guid
+    {
+        // Named from Eric Zimmerman's table when his tools would name it,
+        // else the GUID itself.
+        out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
     }
     out
 }

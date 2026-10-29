@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 1.0.0 (Unreleased)
+
+### Changed
+- The crate is named after its repository, `ys-lnk-parser` (its library is still `shell`: depend on
+  it as `shell = { package = "ys-lnk-parser", … }`), version 1.0.0, by Florian Amette and Zach
+  Mathis (@yamatosecurity), on Rust's 2024 edition, and requires Rust 1.99 (also with
+  `codepages`). (@YamatoSecurity)
 
 ### Added
 - `item::Kind::CdBurn`: a file or folder staged for burning to a CD or DVD (an `AugM` item), named

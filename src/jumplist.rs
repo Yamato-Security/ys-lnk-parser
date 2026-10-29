@@ -111,7 +111,9 @@ pub fn automatic(data: &[u8]) -> Result<Automatic, compound::Error> {
             break;
         };
         let units: Vec<u16> = path_bytes
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| u16::from_le_bytes([c[0], c[1]]))
             .collect();
         let number = u32_at(entry, 88).unwrap_or(0);
@@ -245,7 +247,9 @@ fn category(data: &[u8], mut at: usize) -> Result<(Category, usize), String> {
             let chars = usize::from(u16_at(data, at + 4).ok_or_else(truncated)?);
             let bytes = data.get(at + 6..at + 6 + 2 * chars).ok_or_else(truncated)?;
             let units: Vec<u16> = bytes
-                .chunks_exact(2)
+                .as_chunks::<2>()
+                .0
+                .iter()
                 .map(|c| u16::from_le_bytes([c[0], c[1]]))
                 .collect();
             at += 6 + 2 * chars;

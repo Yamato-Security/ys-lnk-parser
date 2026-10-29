@@ -1,6 +1,6 @@
 //! Shell items built here, for kinds the test sets hold too few of.
 
-use shell::item::{decode, Kind};
+use shell::item::{Kind, decode};
 
 /// A property storage (`1SPS`) of `System.ItemNameDisplay` (FMTID
 /// `{B725F130-…}`, id 10) holding `name`.

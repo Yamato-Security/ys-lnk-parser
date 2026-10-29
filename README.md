@@ -55,11 +55,12 @@ for p in &link.properties {
 }
 ```
 
-Use it from Cargo by commit (the crate keeps the name `sootmark-shell` and its library name
-`shell`; it is not published, and its versions from 0.4.0 are the fork's own):
+Use it from Cargo by commit (the crate is `ys-lnk-parser`, named after the repository, and its
+library keeps the name `shell`; it is not published, and its versions are the fork's own: 1.0.0
+since the rename; Rust 1.99 and edition 2024):
 
 ```toml
-shell = { package = "sootmark-shell", git = "https://github.com/Yamato-Security/ys-lnk-parser", rev = "<commit>", features = ["codepages"] }
+shell = { package = "ys-lnk-parser", git = "https://github.com/Yamato-Security/ys-lnk-parser", rev = "<commit>", features = ["codepages"] }
 ```
 
 Not yet: MTP device and storage items and control panel applet (`.cpl`) items (3 of the test
@@ -73,7 +74,7 @@ Windows shell data, written from the public documentation (libyal's "Windows She
 
 ```toml
 [dependencies]
-shell = { package = "sootmark-shell", git = "https://github.com/Yamato-Security/ys-lnk-parser", rev = "<commit>" }
+shell = { package = "ys-lnk-parser", git = "https://github.com/Yamato-Security/ys-lnk-parser", rev = "<commit>" }
 ```
 
 ```rust

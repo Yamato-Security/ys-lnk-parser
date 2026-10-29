@@ -1,12 +1,12 @@
 [package]
-name = "sootmark-shell"
-version = "0.4.0"
+name = "ys-lnk-parser"
+version = "1.0.0"
+authors = ["Florian Amette", "Zach Mathis (@yamatosecurity)"]
 # Yamato Security's fork of the upstream crate (https://github.com/Sootmark/shell): not
 # published under the upstream name.
 publish = false
-edition = "2021"
-# 1.88 with the codepages feature (encoding_rs).
-rust-version = "1.80"
+edition = "2024"
+rust-version = "1.99"
 description = "Windows shell items, LNK files (MS-SHLLINK, every block), property stores (MS-PROPSTORE), jump lists and compound files (MS-CFB), from the public documentation; damage reported, never a panic."
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/Yamato-Security/ys-lnk-parser"
