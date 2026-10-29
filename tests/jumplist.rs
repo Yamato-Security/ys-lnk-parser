@@ -1,10 +1,10 @@
-//! Jump lists against Eric Zimmerman's JLECmd (its output in
-//! `tests/fixtures/oracle/`), on his MIT test set (automatic jump lists
+//! Jump lists against a reference jump list parser (its output in
+//! `tests/fixtures/oracle/`), on the MIT test set (automatic jump lists
 //! from Windows 7, 8.0, 8.1 and 10), plaso's Apache-2.0 test data
 //! (automatic and custom) and a synthetic custom one: every `DestList`
 //! column, and the link columns of each entry.
 //!
-//! JLECmd names only the first category of a custom jump list; later
+//! The oracle names only the first category of a custom jump list; later
 //! ones are checked against their bytes by hand.
 
 mod common;
@@ -33,7 +33,7 @@ const CUSTOM: [&str; 3] = [
     "synthetic/ccba5a5986c77e43.customDestinations-ms",
 ];
 
-/// A GUID as JLECmd prints it: lowercase, no braces.
+/// A GUID as the oracle prints it: lowercase, no braces.
 fn bare(guid: &str) -> String {
     guid.trim_matches(['{', '}']).to_ascii_lowercase()
 }
@@ -102,8 +102,8 @@ fn columns(d: &Destination, version: u32) -> Vec<(&'static str, String)> {
 }
 
 #[test]
-fn automatic_matches_jlecmd() {
-    let mut by_file = oracle("JLECmd.csv");
+fn automatic_matches_the_oracle() {
+    let mut by_file = oracle("jumplist.csv");
     let mut checked = 0;
     for file in FILES {
         let data = fs::read(fixtures().join("jumplist").join(file)).unwrap();
@@ -112,13 +112,13 @@ fn automatic_matches_jlecmd() {
         let rows = by_file.remove(file).unwrap_or_default();
         assert_eq!(list.destinations.len(), rows.len(), "{file}");
         for row in rows {
-            // JLECmd numbers entries most recent first, which is stream order.
+            // The oracle numbers entries most recent first, which is stream order.
             let at = format!("{file} MRU {}", row["MRU"]);
             let d = &list.destinations[row["MRU"].parse::<usize>().unwrap()];
             for (column, value) in columns(d, list.version) {
                 assert_eq!(&value, &row[column], "{at}: {column}");
             }
-            // JLECmd appends what it resolves the path to (`… ==> …`).
+            // The oracle appends what it resolves the path to (`… ==> …`).
             let path = row["Path"].split(" ==> ").next().unwrap();
             assert_eq!(d.path, path, "{at}: Path");
             check_link(d.link.as_ref().unwrap(), &row, &at);
@@ -130,8 +130,8 @@ fn automatic_matches_jlecmd() {
 }
 
 #[test]
-fn custom_matches_jlecmd() {
-    let mut by_file = oracle("JLECmd-custom.csv");
+fn custom_matches_the_oracle() {
+    let mut by_file = oracle("jumplist-custom.csv");
     let mut checked = 0;
     for file in CUSTOM {
         let list = jumplist::custom(&fs::read(fixtures().join("jumplist").join(file)).unwrap());

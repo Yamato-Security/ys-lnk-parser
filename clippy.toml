@@ -1,2 +1,2 @@
 # Tool, artifact and format names, not code.
-doc-valid-idents = ["LECmd", "JLECmd", "NetBIOS", "LinkInfo", "SBECmd", "ShellBags", "UsrClass", "GuidMapping", "OneDrive", "QuickEdit", "LnkParse3", "ConsoleDataBlock", "ConsoleFEDataBlock", "VistaAndAboveIDList", "CommonNetworkRelativeLink", ".."]
+doc-valid-idents = ["NetBIOS", "LinkInfo", "ShellBags", "UsrClass", "OneDrive", "QuickEdit", "LnkParse3", "ConsoleDataBlock", "ConsoleFEDataBlock", "VistaAndAboveIDList", "CommonNetworkRelativeLink", ".."]

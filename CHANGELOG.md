@@ -16,8 +16,8 @@
 
 ### Fixed
 - A library's folder (a property view item) has the times and NTFS reference of the folder it
-  holds the path of (the last file entry of its property 32 item list), where Eric Zimmerman's
-  tools take a target's MFT entry from: a jump list entry for a library folder had none.
+  holds the path of (the last file entry of its property 32 item list), where a target's MFT
+  entry is taken from: a jump list entry for a library folder had none.
   (@YamatoSecurity)
 
 ## 0.4.0 (ys-lnk-parser)
@@ -40,8 +40,8 @@ First version of Yamato Security's fork, based on sootmark-shell 0.3.0 (Sootmark
 - `property`: serialized property stores (MS-PROPSTORE).
 - `codepage` and `lnk::parse_with` / `item::decode_with`: text that isn't Unicode in a code page;
   the `codepages` feature (`encoding_rs`) for code pages other than Windows-1252.
-- `guid_names` (default feature `guid-names`): names of shell GUIDs from Eric Zimmerman's
-  GuidMapping table (MIT), used for root folders, known folders and control panel pages the crate
+- `guid_names` (default feature `guid-names`): names of shell GUIDs from a GUID name table (MIT),
+  used for root folders, known folders and control panel pages the crate
   didn't name.
 - Tests on LnkParse3's 34 links and its output, and on links built in the tests.
 

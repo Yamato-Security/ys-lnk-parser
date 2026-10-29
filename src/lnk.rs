@@ -283,7 +283,7 @@ impl Link {
 
     /// The target's shell items as a path: `This PC\C:\Windows\notepad.exe`.
     /// A network item's leading backslashes are dropped after the first
-    /// item (`Network\server\share`), as LECmd joins them.
+    /// item (`Network\server\share`).
     #[must_use]
     pub fn target_path(&self) -> String {
         path(&self.target)

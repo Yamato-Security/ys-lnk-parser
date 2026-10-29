@@ -6,15 +6,15 @@ stored in, used by [Juntei](https://github.com/Yamato-Security/juntei)'s `parse-
 history and the MIT OR Apache-2.0 license are kept; everything below the line is upstream's README,
 updated for what the fork changed.
 
-sootmark-shell was chosen after running the Rust LNK parsers on 1,123 real links (Eric Zimmerman's
-test set from Windows XP to 10, DFIRArtifactMuseum, LnkParse3's, plaso's and the crates' own test
-links, and the links in DFIRArtifactMuseum's jump lists) against pylnk (libyal), LnkParse3 and
-LECmd 2026.10 (built from source), which agree on every field once their representations are
+sootmark-shell was chosen after running the Rust LNK parsers on 1,123 real links (a public test
+set from Windows XP to 10, DFIRArtifactMuseum, LnkParse3's, plaso's and the crates' own test
+links, and the links in DFIRArtifactMuseum's jump lists) against pylnk (libyal), LnkParse3 and a
+third, independent LNK parser (built from source), which agree on every field once their representations are
 aligned, and on 45,000 damaged copies:
 
 | Crate | Read | Fields that differ from the references | Damaged links: panics / allocations over 1 GiB / hangs | Notes |
 | --- | --- | --- | --- | --- |
-| **sootmark-shell 0.3.0** | 1,119 | a suffix and a MAC address on crafted links; 26 target paths | 0 / 0 / 1 | best shell item names, jump lists and compound files, tests against LECmd and JLECmd; 2 of 11 extra data blocks |
+| **sootmark-shell 0.3.0** | 1,119 | a suffix and a MAC address on crafted links; 26 target paths | 0 / 0 / 1 | best shell item names, jump lists and compound files, tests against reference output; 2 of 11 extra data blocks |
 | lnk-core 0.4.1 (SecurityRonin) | 1,119 | target times wrong in 744 links; non-ASCII ANSI text garbled | 0 / 0 / 0 | Apache-2.0; only the tracker block |
 | lnk_parser 0.4.3 | 1,111 | volume serials unpadded | 0 / 730 / 0 | only the tracker block |
 | lnk 0.6.4 (lnk-rs) | 1,024 | NUL padding left in strings | 0 / 46 / 0 | reads from a path only |
@@ -26,7 +26,7 @@ What the fork adds and fixes:
 | Change | Source |
 | --- | --- |
 | A damaged property storage size in a property view item made parsing loop forever | fork (fuzzing) |
-| A Windows XP item whose Unicode short name isn't NUL-terminated lost its long name (`ÉchantillB…뻯ㄔ…`): the extension block is now found from the offset at the item's end | fork; as libyal and LECmd |
+| A Windows XP item whose Unicode short name isn't NUL-terminated lost its long name (`ÉchantillB…뻯ㄔ…`): the extension block is now found from the offset at the item's end | fork; as libyal |
 | LinkInfo offsets into the header read the header as text (`E:\payload.exeH`) | fork |
 | A time and MAC address only from version 1 GUIDs | fork |
 | Delegate items nesting thousands deep overflowed the stack; DestList entries repeating a stream made a copy of its link each (a 90 KB jump list reached 853 MiB) | fork (review) |
@@ -34,14 +34,14 @@ What the fork adds and fixes:
 | Property stores (MS-PROPSTORE): numbered and named properties, typed values, canonical names | written from MS-PROPSTORE |
 | A command line hidden behind an over-long working directory: read as Windows reads it (260 characters), as LnkParse3 does | idea of LnkParse3 |
 | `Link::problems`: what's damaged or unusual, the parse going on where it can | fork |
-| Windows-1252 decoded as Windows-1252 (it was Latin-1); other code pages, Shift-JIS for Japanese systems among them, with the `codepages` feature | fork; code page idea of lnk-rs and LECmd |
-| GUIDs named from Eric Zimmerman's GuidMapping table (MIT): Network, Computers and Devices, control panel pages, … | EZ's GuidMapping |
+| Windows-1252 decoded as Windows-1252 (it was Latin-1); other code pages, Shift-JIS for Japanese systems among them, with the `codepages` feature | fork; code page idea of lnk-rs |
+| GUIDs named from a GUID name table (MIT): Network, Computers and Devices, control panel pages, … | the table's (`src/guid_names/`) |
 | No dependencies by default (`sootmark-common` replaced) | fork |
 | Tests on LnkParse3's 34 links and its output (MIT) | fork |
 
 On the 1,118 links the three references all read, every field of the header, link info, string
 data and tracker block equals theirs, the icon index, show command, hotkey and birth droids
-included, and 1,105 target paths equal LECmd's. Of the 13 that differ, LECmd shows a damaged item
+included, and 1,105 target paths equal the third reference's. Of the 13 that differ, it shows a damaged item
 or cuts a name in 4 and a placeholder (`(None)`, `No Property sheet value found`) in 6, and names an
 MTP device or control panel applet the fork doesn't in 3. 67,000 damaged copies parse without a panic, an
 allocation over 1 GiB or a hang.
@@ -70,7 +70,7 @@ links); decoding the Darwin descriptor into the Windows Installer product and co
 
 # shell
 
-Windows shell data, written from the public documentation (libyal's "Windows Shell Item format" and "Jump lists format", Microsoft's MS-SHLLINK, MS-PROPSTORE and MS-CFB): shell items, the building blocks of ShellBags, LNK files and jump lists; LNK files; property stores; jump lists; and the compound files automatic jump lists are stored in. No dependencies by default; the `codepages` feature adds `encoding_rs` for code pages other than Windows-1252, and the default `guid-names` feature names GUIDs from Eric Zimmerman's GuidMapping table.
+Windows shell data, written from the public documentation (libyal's "Windows Shell Item format" and "Jump lists format", Microsoft's MS-SHLLINK, MS-PROPSTORE and MS-CFB): shell items, the building blocks of ShellBags, LNK files and jump lists; LNK files; property stores; jump lists; and the compound files automatic jump lists are stored in. No dependencies by default; the `codepages` feature adds `encoding_rs` for code pages other than Windows-1252, and the default `guid-names` feature names GUIDs from an MIT-licensed GUID name table.
 
 ```toml
 [dependencies]
@@ -98,17 +98,17 @@ for d in &list.destinations {
 - `codepage`: text in a Windows code page (Windows-1252 built in, others with the `codepages` feature). `guid_names`: names of shell GUIDs.
 - `jumplist::automatic`: each `DestList` entry (entry number, last use, pin position, access count on Windows 10 and later, machine name, the tracker's volume and file identifiers now and at birth, with the time and MAC address in the file identifier, the recorded path) and its link, most recent first. `jumplist::custom`: the categories an application defined (named, frequent or recent, tasks) and their links.
 - `compound`: compound files (OLE, MS-CFB): the directory, each entry with its creation and modification times, its parent storage and its path from the root (`Root Entry/\u{5}SummaryInformation`), and any stream, from either sector size, mini streams included. Every chain and count is bounded by the file: a looping or truncated table is an error, not a hang or a huge allocation. The directory tree is walked once per entry: a link to a missing entry, a loop, or an entry the root doesn't reach is a problem, and the rest still reads.
-- `item`: shell items (root and known folders, drives, folders and files with their long names, FAT times and NTFS references, control panel pages and categories, "Users Files" delegates, property views (apps under Applications included, library folders with their folder's times and NTFS reference), files and folders staged for a CD or DVD burn, network locations, URIs). Other classes are reported as unknown with their class byte, not guessed. Root and known folders are named as Eric Zimmerman's tools name them.
+- `item`: shell items (root and known folders, drives, folders and files with their long names, FAT times and NTFS references, control panel pages and categories, "Users Files" delegates, property views (apps under Applications included, library folders with their folder's times and NTFS reference), files and folders staged for a CD or DVD burn, network locations, URIs). Other classes are reported as unknown with their class byte, not guessed. Root and known folders are named as forensic tools commonly name them.
 
 ## How it's checked
 
-- Eric Zimmerman's LNK test set (MIT; `tests/fixtures/EZ-LICENSE.txt`, which also covers his jump lists): 552 links from Windows XP to 10, every column LECmd reports compared (times, size, attributes, flags, volume, local and network paths, strings, machine, MAC, tracker time, MFT reference, extra blocks, target path); where LECmd shows a localized resource string, a short name or garbled text in a path, the difference is documented in `tests/lnk.rs`. The damaged file is refused.
-- Jump lists against JLECmd: Eric Zimmerman's test set (MIT; Windows 7, 8.0, 8.1 and 10), plaso's (Apache-2.0; `tests/fixtures/jumplist/plaso/LICENSE-plaso.txt`) and a synthetic custom list; 31 `DestList` entries on every column (entry, order, times, machine, MAC, counts, pins, the four identifiers, path) with their links, and 17 custom links. JLECmd names only the first category of a custom list; the others are checked by hand in `tests/jumplist.rs`.
+- A public LNK test set (MIT; `tests/fixtures/LICENSE-test-set.txt`, which also covers its jump lists): 552 links from Windows XP to 10, every column a reference LNK parser reports compared (times, size, attributes, flags, volume, local and network paths, strings, machine, MAC, tracker time, MFT reference, extra blocks, target path); where the reference shows a localized resource string, a short name or garbled text in a path, the difference is documented in `tests/lnk.rs`. The damaged file is refused.
+- Jump lists against a reference jump list parser: the same test set (MIT; Windows 7, 8.0, 8.1 and 10), plaso's (Apache-2.0; `tests/fixtures/jumplist/plaso/LICENSE-plaso.txt`) and a synthetic custom list; 31 `DestList` entries on every column (entry, order, times, machine, MAC, counts, pins, the four identifiers, path) with their links, and 17 custom links. The reference names only the first category of a custom list; the others are checked by hand in `tests/jumplist.rs`.
 - Compound files against olefile (BSD-licensed, run as an oracle, not part of the crate; `tests/fixtures/oracle/olefile_tree.py`): every directory entry's path, type, size, creation and modification time in plaso's `Document.doc` (a storage within a storage) and the eight automatic jump lists, 57 entries (`tests/compound.rs`).
 - LnkParse3's 34 test links and its output (MIT, Matúš Jasnický; `tests/fixtures/lnkparse3/`): every field both read (header, string data, link info, every extra data block LnkParse3 decodes, data after the terminal block) agrees, the command line hidden behind padding included (`tests/lnkparse3.rs`).
-- Links built in the tests for what the sets don't vary: damaged offsets, version 1 and other GUIDs, header fields, shim, property store and Vista blocks, a Shift-JIS string (`tests/built.rs`); delegate items nested 6,000 deep, CD burn items (one from a jump list, one of Eric Zimmerman's samples) and burn items nested as deep as an item allows, a library folder holding the items of a real link, and a DestList repeating one stream 200 times.
+- Links built in the tests for what the sets don't vary: damaged offsets, version 1 and other GUIDs, header fields, shim, property store and Vista blocks, a Shift-JIS string (`tests/built.rs`); delegate items nested 6,000 deep, CD burn items (one from a jump list, one from a published sample) and burn items nested as deep as an item allows, a library folder holding the items of a real link, and a DestList repeating one stream 200 times.
 - Corrupted and truncated links, jump lists and compound files, and arbitrary bytes (property tests): parsed or refused, never a panic.
 
 ## Licence
 
-MIT or Apache-2.0, at your option. The GUID name table (`src/guid_names/`) is Eric Zimmerman's GuidMapping, under the MIT licence (`src/guid_names/LICENSE`). The test links and most test jump lists are Eric Zimmerman's, under the MIT licence; LnkParse3's test links and output are under the MIT licence (`tests/fixtures/lnkparse3/LICENSE`); plaso's test jump lists and `Document.doc` are under the Apache licence 2.0.
+MIT or Apache-2.0, at your option. The GUID name table (`src/guid_names/`) is under the MIT licence (`src/guid_names/LICENSE`). The test links and most test jump lists are under the MIT licence (`tests/fixtures/LICENSE-test-set.txt`); LnkParse3's test links and output are under the MIT licence (`tests/fixtures/lnkparse3/LICENSE`); plaso's test jump lists and `Document.doc` are under the Apache licence 2.0.
