@@ -14,6 +14,18 @@
   and a target path ended at the drive (`This PC\D:\` for `This PC\D:\autorun.inf`).
   (@YamatoSecurity)
 
+- Shell items of ShellBags (`BagMRU`) and links: removable drives (the Removable Drives delegate
+  folder: `Kind::Volume`, named by the volume item it holds), search results (the Search Folder
+  delegate: `Kind::PropertyView`), portable devices (the Portable Devices delegate and MTP
+  storages: `Kind::PortableDevice`; their folders: `Kind::PortableDeviceFolder`), users property
+  views with the `0x23A3DFD5` and `0x3B93AFBB` signatures (computers and shares under Computers
+  and Devices, named from their property store), and an FTP site's URI item by its server
+  (`ftp://host`). Removable drives and search results were root folders named by a nonsense
+  GUID; the others were unknown class 0 items. (@YamatoSecurity)
+- `item::decode_child`: an item decoded with the item it is under, for the items whose class byte
+  says nothing: a folder or file inside a ZIP archive (`Kind::CompressedFolder`, Windows 10's and
+  XP's layouts) and a folder on an FTP server (`Kind::FtpFolder`). (@YamatoSecurity)
+
 ### Fixed
 - A library's folder (a property view item) has the times and NTFS reference of the folder it
   holds the path of (the last file entry of its property 32 item list), where a target's MFT

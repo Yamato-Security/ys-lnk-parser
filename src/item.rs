@@ -36,6 +36,17 @@ pub enum Kind {
     /// A file or folder in the staging area of a CD or DVD burn (`AugM`),
     /// named from the file entry it wraps.
     CdBurn,
+    /// A portable device or one of its storages (a phone, a camera: MTP),
+    /// by its name.
+    PortableDevice,
+    /// A folder or file on a portable device (MTP), by its name.
+    PortableDeviceFolder,
+    /// A folder or file inside a ZIP archive (an item under the archive's
+    /// file entry: see [`decode_child`]).
+    CompressedFolder,
+    /// A folder on an FTP server (an item under an `ftp` URI item: see
+    /// [`decode_child`]).
+    FtpFolder,
     /// An item whose class this parser doesn't know: its class byte.
     Other(u8),
 }
@@ -206,18 +217,20 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         mft: None,
         extension_blocks: 0,
     };
+    if delegate(item, &mut out, depth, code_page) {
+        return named_from_guid(out);
+    }
     match class {
         // A root folder (0x1F), or a known folder under This PC (0x2E:
         // Downloads, …), by identifier.
         0x1f | 0x2e => {
             out.kind = Kind::RootFolder;
             out.guid = guid(item.get(4..).unwrap_or_default());
-            out.name = out
-                .guid
+            out.guid
                 .as_deref()
                 .and_then(root_folder)
                 .unwrap_or_default()
-                .to_owned();
+                .clone_into(&mut out.name);
             extension_blocks(item, 20, &mut out);
         }
         0x20..=0x2f => {
@@ -239,34 +252,51 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         0x71 => {
             out.kind = Kind::ControlPanel;
             out.guid = guid(item.get(14..).unwrap_or_default());
-            out.name = out
-                .guid
+            out.guid
                 .as_deref()
                 .and_then(control_panel)
                 .unwrap_or_default()
-                .to_owned();
+                .clone_into(&mut out.name);
         }
         0x74 => users_files_folder(item, &mut out, depth, code_page),
         // A known folder, by identifier (Downloads, Documents, …).
         0x00 if u32_at(item, 6) == Some(0x23fe_bbee) => {
             out.kind = Kind::RootFolder;
             out.guid = guid(item.get(14..).unwrap_or_default());
-            out.name = out
-                .guid
+            out.guid
                 .as_deref()
                 .and_then(root_folder)
                 .unwrap_or_default()
-                .to_owned();
+                .clone_into(&mut out.name);
         }
         // A property store: its display name, when it has one (a library's
         // folders carry one after the 0x10141981 signature, an app under
         // Applications after `APPS`).
         0x00 if matches!(
             u32_at(item, 6),
-            Some(0xbeeb_ee00 | 0x1014_1981 | 0x5350_5041)
+            Some(0xbeeb_ee00 | 0x1014_1981 | 0x5350_5041 | 0x23a3_dfd5 | 0x3b93_afbb)
         ) =>
         {
             property_view(item, &mut out, depth, code_page);
+        }
+        // A portable device's storage, and a folder on it (MTP).
+        0x00 if u32_at(item, 6) == Some(0x1031_2005) => {
+            out.kind = Kind::PortableDevice;
+            out.name = counted_utf16(item, 38, 54).unwrap_or_default();
+        }
+        // Three counted strings from offset 74: two names (the first often
+        // empty) and an object identifier.
+        0x00 if u32_at(item, 6) == Some(0x0719_2006) => {
+            out.kind = Kind::PortableDeviceFolder;
+            let first = counted_utf16(item, 62, 74).unwrap_or_default();
+            out.name = if first.is_empty() {
+                u32_at(item, 62)
+                    .and_then(|n| usize::try_from(n).ok()?.checked_mul(2)?.checked_add(74))
+                    .and_then(|at| counted_utf16(item, 66, at))
+                    .unwrap_or_default()
+            } else {
+                first
+            };
         }
         0x00 if item.get(4..8) == Some(b"AugM") => cd_burn(item, &mut out, depth, code_page),
         0x01 if u32_at(item, 4) == Some(0x39de_2184) => {
@@ -275,14 +305,144 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         }
         _ => {}
     }
+    named_from_guid(out)
+}
+
+/// `out`, named from its GUID when nothing else names it: from the GUID name
+/// table when it names it, else the GUID itself.
+fn named_from_guid(mut out: Item) -> Item {
     if out.name.is_empty()
         && let Some(g) = &out.guid
     {
-        // Named from the GUID name table when it names it, else the GUID
-        // itself.
         out.name = guid_names::name(g).map_or_else(|| g.clone(), str::to_owned);
     }
     out
+}
+
+/// Decode an item with the item it is under (`parent`): an item under a ZIP
+/// archive's file entry, or under another item of the archive, is a
+/// compressed folder item, and an item under an `ftp` URI item or an FTP
+/// folder is an FTP folder, whatever its class byte says. Otherwise as
+/// [`decode_with`].
+#[must_use]
+pub fn decode_child(item: &[u8], parent: Option<&Item>, code_page: u16) -> Item {
+    let on_ftp = parent.is_some_and(|p| {
+        p.kind == Kind::FtpFolder
+            || (p.kind == Kind::Uri
+                && p.name
+                    .get(..3)
+                    .is_some_and(|s| s.eq_ignore_ascii_case("ftp")))
+    });
+    if on_ftp && let Some(folder) = ftp_folder(item, code_page) {
+        return folder;
+    }
+    let in_archive = parent.is_some_and(|p| {
+        p.kind == Kind::CompressedFolder
+            || (matches!(p.kind, Kind::File | Kind::Directory)
+                && std::path::Path::new(&p.name)
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("zip")))
+    });
+    if in_archive && let Some(entry) = compressed_folder(item) {
+        return entry;
+    }
+    decode_with(item, code_page)
+}
+
+/// A compressed folder item: a folder or file inside a ZIP archive, by its
+/// name. Windows 10 writes the name's size (in characters, without its NUL)
+/// at offset 84 and the name at 92; Windows XP at 60 and 68.
+fn compressed_folder(item: &[u8]) -> Option<Item> {
+    let name = [(84usize, 92usize), (60, 68)]
+        .into_iter()
+        .find_map(|(size_at, at)| {
+            let chars = usize::try_from(u32_at(item, size_at)?).ok()?;
+            let bytes = item.get(at..at.checked_add(chars.checked_mul(2)?)?)?;
+            // The name ends with a NUL, and has none before it.
+            if chars == 0 || u16_at(item, at + 2 * chars) != Some(0) {
+                return None;
+            }
+            let (name, _) = utf16_until_nul(bytes);
+            (name.chars().count() == chars).then_some(name)
+        })?;
+    Some(Item {
+        class: item.get(2).copied().unwrap_or(0),
+        kind: Kind::CompressedFolder,
+        name,
+        guid: None,
+        modified: None,
+        created: None,
+        accessed: None,
+        mft: None,
+        extension_blocks: 0,
+    })
+}
+
+/// The class identifier delegate items end their inner data with.
+const DELEGATE_CLASS: &str = "{5E591A74-DF96-48D3-8D67-1733BCEE28BA}";
+/// Delegate folders decoded here: removable drives, search results and
+/// portable devices.
+const REMOVABLE_DRIVES: &str = "{F5FB2C77-0E2F-4A16-A381-3E560C68BC83}";
+const SEARCH_FOLDER: &str = "{04731B67-D933-450A-90E6-4ACD2E9408FE}";
+const PORTABLE_DEVICES: &str = "{35786D3C-B075-49B9-88DD-029876E11C01}";
+
+/// A delegate item (DELEGATEITEMID): its inner data (its size at offset 4),
+/// then the delegate class identifier and the delegate folder's. Decoded
+/// when the folder is one known here; `false` otherwise, for the item's
+/// class to say what it is.
+fn delegate(item: &[u8], out: &mut Item, depth: usize, code_page: u16) -> bool {
+    let Some(inner_end) = u16_at(item, 4).map(|n| 6 + usize::from(n)) else {
+        return false;
+    };
+    if item
+        .get(inner_end..inner_end + 16)
+        .and_then(guid)
+        .as_deref()
+        != Some(DELEGATE_CLASS)
+    {
+        return false;
+    }
+    let Some(folder) = item.get(inner_end + 16..inner_end + 32).and_then(guid) else {
+        return false;
+    };
+    let inner = &item[6..inner_end];
+    match folder.as_str() {
+        // A removable drive: a signature, then a volume item.
+        REMOVABLE_DRIVES if depth < MAX_NESTING && u32_at(inner, 0) == Some(0xf5a6_b710) => {
+            let size = u16_at(inner, 4).map_or(0, usize::from);
+            let volume = decode_at(
+                inner.get(4..inner.len().min(4 + size)).unwrap_or_default(),
+                depth + 1,
+                code_page,
+            );
+            out.kind = Kind::Volume;
+            out.name = volume.name;
+        }
+        // Search results: a property view.
+        SEARCH_FOLDER => {
+            property_view(item, out, depth, code_page);
+            if out.name.is_empty() {
+                "Search Folder".clone_into(&mut out.name);
+            }
+        }
+        // A portable device: two counted strings, its name first.
+        PORTABLE_DEVICES => {
+            out.kind = Kind::PortableDevice;
+            out.name = counted_utf16(item, 30, 40).unwrap_or_default();
+        }
+        _ => return false,
+    }
+    out.guid = Some(folder);
+    extension_blocks(item, inner_end + 32, out);
+    true
+}
+
+/// A UTF-16 string at `at` whose size in characters (with its NUL) is the
+/// 32-bit number at `size_at`; `None` when it doesn't fit in `item`.
+fn counted_utf16(item: &[u8], size_at: usize, at: usize) -> Option<String> {
+    let chars = usize::try_from(u32_at(item, size_at)?).ok()?;
+    let bytes = item.get(at..at.checked_add(chars.checked_mul(2)?)?)?;
+    Some(utf16_until_nul(bytes).0)
 }
 
 /// A file entry (class 0x3N: 0x1 directory, 0x2 file, 0x4 Unicode name).
@@ -486,14 +646,64 @@ fn property_view(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
 }
 
 fn uri(item: &[u8], code_page: u16) -> String {
-    // Data size at +4; the URI follows a fixed header, ASCII or UTF-16.
-    let data = item.get(8..).unwrap_or_default();
+    // The size of the data at +4 (0: none), then the URI, ASCII or UTF-16.
     let unicode = item.get(3).is_some_and(|f| f & 0x80 != 0);
-    if unicode {
-        utf16_until_nul(data).0
-    } else {
-        codepage::decode(data, code_page)
+    let text = |at: usize| {
+        let bytes = item.get(at..).unwrap_or_default();
+        if unicode {
+            utf16_until_nul(bytes).0
+        } else {
+            codepage::decode(bytes, code_page)
+        }
+    };
+    let data_size = u16_at(item, 4).map_or(0, usize::from);
+    if data_size == 0 {
+        return text(8);
     }
+    // The data: times and flags, then the host (an FTP server), user name
+    // and password, each after its size in bytes; the URI after the data is
+    // often only its scheme (`ftp`).
+    let uri = text(6 + data_size);
+    let host = u32_at(item, 42)
+        .and_then(|n| item.get(46..46_usize.checked_add(usize::try_from(n).ok()?)?))
+        .map(|bytes| {
+            if unicode {
+                utf16_until_nul(bytes).0
+            } else {
+                codepage::decode(bytes, code_page)
+            }
+        })
+        .unwrap_or_default();
+    match (host.is_empty(), uri.contains(':')) {
+        (false, false) => format!("{uri}://{host}"),
+        _ => uri,
+    }
+}
+
+/// A folder on an FTP server: its name in ASCII at offset 38 (padded to 4
+/// bytes), then in UTF-16.
+fn ftp_folder(item: &[u8], code_page: u16) -> Option<Item> {
+    let ascii = item.get(38..)?;
+    let end = ascii.iter().position(|&b| b == 0)?;
+    let name = codepage::decode(&ascii[..end], code_page);
+    let unicode = utf16_until_nul(
+        ascii
+            .get((end + 1).next_multiple_of(4)..)
+            .unwrap_or_default(),
+    )
+    .0;
+    let name = if unicode.is_empty() { name } else { unicode };
+    (!name.is_empty()).then(|| Item {
+        class: item.get(2).copied().unwrap_or(0),
+        kind: Kind::FtpFolder,
+        name,
+        guid: None,
+        modified: None,
+        created: None,
+        accessed: None,
+        mft: None,
+        extension_blocks: 0,
+    })
 }
 
 /// Root and known folders by class identifier, named as forensic tools
