@@ -3,8 +3,8 @@
 Yamato Security's maintained fork of [sootmark-shell](https://github.com/Sootmark/shell) (Florian
 Amette): Windows shell link (`.lnk`) files, shell items, jump lists and the compound files they're
 stored in, used by [Juntei](https://github.com/Yamato-Security/juntei)'s `parse-lnk`. The upstream
-history and the MIT OR Apache-2.0 license are kept; everything below the line is upstream's README,
-updated for what the fork changed.
+history is kept, and its code stays under its MIT OR Apache-2.0 license (see [Licence](#licence));
+everything below the line is upstream's README, updated for what the fork changed.
 
 sootmark-shell was chosen after running the Rust LNK parsers on 1,123 real links (a public test
 set from Windows XP to 10, DFIRArtifactMuseum, LnkParse3's, plaso's and the crates' own test
@@ -111,4 +111,10 @@ for d in &list.destinations {
 
 ## Licence
 
-MIT or Apache-2.0, at your option. The GUID name table (`src/guid_names/`) is under the MIT licence (`src/guid_names/LICENSE`). The test links and most test jump lists are under the MIT licence (`tests/fixtures/LICENSE-test-set.txt`); LnkParse3's test links and output are under the MIT licence (`tests/fixtures/lnkparse3/LICENSE`); plaso's test jump lists and `Document.doc` are under the Apache licence 2.0.
+ys-lnk-parser is copyright Shirofune Security Co., Ltd. and released under the [Reciprocal Public
+License 1.5](LICENSE) (RPL-1.5); its source code was published under MIT OR Apache-2.0 before
+version 1.0.0. It is changed from [sootmark-shell](https://github.com/Sootmark/shell) (copyright
+Cyber Experts), whose code stays under the MIT License or the Apache License 2.0 (`LICENSE-MIT`,
+`LICENSE-APACHE`): each Rust file changed from it says so in its header.
+
+The GUID name table (`src/guid_names/`) is under the MIT licence (`src/guid_names/LICENSE`). The test links and most test jump lists are under the MIT licence (`tests/fixtures/LICENSE-test-set.txt`); LnkParse3's test links and output are under the MIT licence (`tests/fixtures/lnkparse3/LICENSE`); plaso's test jump lists and `Document.doc` are under the Apache licence 2.0.
