@@ -2,6 +2,11 @@
 
 ## 1.0.0 (Unreleased)
 
+### Fixed
+- Decode Control Panel task property views (`0x23018b33`) so their display names survive in
+  reconstructed link targets. Property-view ANSI strings also honor the selected code page.
+  Synthetic tests cover Unicode, CP932, complete links and truncated items. (@YamatoSecurity)
+
 ### Changed
 - License: ys-lnk-parser is now copyright Shirofune Security Co., Ltd. and released under the
   Reciprocal Public License 1.5 (RPL-1.5) instead of MIT OR Apache-2.0. Upstream's code stays under

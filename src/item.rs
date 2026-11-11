@@ -291,7 +291,12 @@ fn decode_at(item: &[u8], depth: usize, code_page: u16) -> Item {
         // Applications after `APPS`).
         0x00 if matches!(
             u32_at(item, 6),
-            Some(0xbeeb_ee00 | 0x1014_1981 | 0x5350_5041 | 0x23a3_dfd5 | 0x3b93_afbb)
+            Some(
+                0xbeeb_ee00 | 0x1014_1981 | 0x5350_5041 | 0x23a3_dfd5 | 0x3b93_afbb
+                // Control Panel task views: the display name is in a serialized
+                // property store after the view's header and identifiers.
+                | 0x2301_8b33
+            )
         ) =>
         {
             property_view(item, &mut out, depth, code_page);
@@ -627,7 +632,7 @@ fn cd_burn(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
 /// view's, where a target's MFT entry is taken from.
 fn property_view(item: &[u8], out: &mut Item, depth: usize, code_page: u16) {
     out.kind = Kind::PropertyView;
-    let store = property::parse(item.get(10..).unwrap_or_default(), 1252);
+    let store = property::parse(item.get(10..).unwrap_or_default(), code_page);
     for p in store {
         match (p.canonical_name(), p.format_id.as_str(), p.id, p.value) {
             (Some("System.ItemNameDisplay"), _, _, property::Value::Text(text))
