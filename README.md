@@ -25,6 +25,7 @@ What the fork adds and fixes:
 
 | Change | Source |
 | --- | --- |
+| Control Panel task views (`0x23018b33`) retain their property-store display names in target paths, including ANSI strings in the selected code page | fork |
 | A damaged property storage size in a property view item made parsing loop forever | fork (fuzzing) |
 | A Windows XP item whose Unicode short name isn't NUL-terminated lost its long name (`ÉchantillB…뻯ㄔ…`): the extension block is now found from the offset at the item's end | fork; as libyal |
 | LinkInfo offsets into the header read the header as text (`E:\payload.exeH`) | fork |

@@ -613,3 +613,78 @@ fn ftp_sites_and_their_folders_are_named() {
     // Under anything else, decoded by the class byte.
     assert_ne!(decode(&ftp_folder("debian")).kind, Kind::FtpFolder);
 }
+
+/// A Control Panel task property view with a header and identifiers before its store.
+/// This is synthesized here; no case data is needed to reproduce the lost target name.
+fn control_panel_task(name: &str) -> Vec<u8> {
+    control_panel_task_store(&display_name_store(name))
+}
+
+fn control_panel_task_store(store: &[u8]) -> Vec<u8> {
+    let mut item = vec![0u8; 46];
+    item[6..10].copy_from_slice(&0x2301_8b33u32.to_le_bytes());
+    item[10..12].copy_from_slice(&(store.len() as u16).to_le_bytes());
+    item[12..14].copy_from_slice(&36u16.to_le_bytes());
+    item.extend(store);
+    item.extend([0; 4]);
+    let size = item.len() as u16;
+    item[..2].copy_from_slice(&size.to_le_bytes());
+    item[4..6].copy_from_slice(&(size - 6).to_le_bytes());
+    item
+}
+
+#[test]
+fn control_panel_task_property_view_keeps_its_display_name() {
+    for name in ["Open optional components", "Windows の機能を変更"] {
+        let item = control_panel_task(name);
+        let decoded = decode(&item);
+        assert_eq!(decoded.kind, Kind::PropertyView);
+        assert_eq!(decoded.name, name);
+    }
+}
+
+#[test]
+fn control_panel_task_name_reaches_the_full_link_target() {
+    let task = control_panel_task("Open optional components");
+    let mut target = vec![20, 0, 0x1f, 0];
+    // This PC: {20D04FE0-3AEA-1069-A2D8-08002B30309D}.
+    target.extend([
+        0xe0, 0x4f, 0xd0, 0x20, 0xea, 0x3a, 0x69, 0x10, 0xa2, 0xd8, 0x08, 0x00, 0x2b, 0x30, 0x30,
+        0x9d,
+    ]);
+    target.extend(task);
+    target.extend([0, 0]);
+    let mut link = vec![0u8; 76];
+    link[..4].copy_from_slice(&76u32.to_le_bytes());
+    link[4..20].copy_from_slice(&[1, 0x14, 2, 0, 0, 0, 0, 0, 0xc0, 0, 0, 0, 0, 0, 0, 0x46]);
+    link[20..24].copy_from_slice(&1u32.to_le_bytes()); // HasLinkTargetIDList
+    link.extend((target.len() as u16).to_le_bytes());
+    link.extend(target);
+    let parsed = shell::lnk::parse(&link).unwrap();
+    assert_eq!(parsed.target_path(), r"This PC\Open optional components");
+}
+
+#[test]
+fn truncated_control_panel_task_views_are_bounded_and_unknown_signatures_stay_unknown() {
+    let item = control_panel_task("Open optional components");
+    for end in 0..item.len() {
+        let _ = decode(&item[..end]);
+    }
+    let mut unknown = item;
+    unknown[6..10].copy_from_slice(&0x2301_8b34u32.to_le_bytes());
+    assert_eq!(decode(&unknown).name, "");
+}
+
+#[test]
+#[cfg(feature = "codepages")]
+fn property_view_ansi_display_names_honor_the_selected_code_page() {
+    let mut store = display_name_store("abc");
+    // Same property record size: VT_LPSTR, seven bytes including its NUL, one padding byte.
+    store[33..35].copy_from_slice(&0x1eu16.to_le_bytes());
+    store[37..41].copy_from_slice(&7u32.to_le_bytes());
+    store[41..49].fill(0);
+    store[41..47].copy_from_slice(&[0x83, 0x65, 0x83, 0x58, 0x83, 0x67]); // テスト in CP932
+    let item = control_panel_task_store(&store);
+    assert_eq!(shell::item::decode_with(&item, 932).name, "テスト");
+    assert_ne!(shell::item::decode_with(&item, 1252).name, "テスト");
+}
