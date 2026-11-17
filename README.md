@@ -110,6 +110,16 @@ for d in &list.destinations {
 - Links built in the tests for what the sets don't vary: damaged offsets, version 1 and other GUIDs, header fields, shim, property store and Vista blocks, a Shift-JIS string (`tests/built.rs`); delegate items nested 6,000 deep, CD burn items (one from a jump list, one from a published sample) and burn items nested as deep as an item allows, a library folder holding the items of a real link, and a DestList repeating one stream 200 times; a removable drive and a computer under Computers and Devices from public ShellBags (regipy's and Plaso's test hives), a search folder, a portable device, its storage and folders, ZIP entries in Windows 10's and XP's layouts, an FTP site and its folders, and those items damaged at random.
 - Corrupted and truncated links, jump lists and compound files, and arbitrary bytes (property tests): parsed or refused, never a panic.
 
+## Contributing
+
+Contributions require this repository's [Contributor License Agreement](CLA.md).
+It permits **Zachary Mathis** and **Shirofune Security Co., Ltd.** to use and
+sell covered contributions in proprietary editions, while accepted contributions
+also remain available in the free, open-source community edition.
+Read [how to sign](CONTRIBUTING.md#how-to-sign). The `cla/required` check uses
+the [maintainer-verified signer registry](.github/cla/signatures.json); first-time
+signatures require verification and registration.
+
 ## Licence
 
 ys-lnk-parser is copyright Shirofune Security Co., Ltd. and released under the [Reciprocal Public
