@@ -688,14 +688,13 @@ fn uri(item: &[u8], code_page: u16) -> String {
     let uri = text(6 + data_size);
     let host = u32_at(item, 42)
         .and_then(|n| item.get(46..46_usize.checked_add(usize::try_from(n).ok()?)?))
-        .map(|bytes| {
+        .map_or_default(|bytes| {
             if unicode {
                 utf16_until_nul(bytes).0
             } else {
                 codepage::decode(bytes, code_page)
             }
-        })
-        .unwrap_or_default();
+        });
     match (host.is_empty(), uri.contains(':')) {
         (false, false) => format!("{uri}://{host}"),
         _ => uri,
