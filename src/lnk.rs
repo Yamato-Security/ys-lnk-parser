@@ -739,13 +739,9 @@ fn network_link(n: &[u8], link: &mut Link, code_page: u16) {
     let unicode = name_at.is_some_and(|at| at > 0x14);
     let text = |ansi_at: usize, unicode_at: usize| -> String {
         if unicode {
-            valid_offset(n, unicode_at, 0x1c)
-                .map(|o| string_at(n, o, true, code_page))
-                .unwrap_or_default()
+            valid_offset(n, unicode_at, 0x1c).map_or_default(|o| string_at(n, o, true, code_page))
         } else {
-            valid_offset(n, ansi_at, 0x14)
-                .map(|o| string_at(n, o, false, code_page))
-                .unwrap_or_default()
+            valid_offset(n, ansi_at, 0x14).map_or_default(|o| string_at(n, o, false, code_page))
         }
     };
     if name_at.is_some() {

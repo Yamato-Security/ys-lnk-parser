@@ -10,7 +10,6 @@ rust-version = "1.99"
 description = "Windows shell items, LNK files (MS-SHLLINK, every block), property stores (MS-PROPSTORE), jump lists and compound files (MS-CFB), from the public documentation; damage reported, never a panic."
 license = "RPL-1.5 AND (MIT OR Apache-2.0)"
 repository = "https://github.com/Yamato-Security/ys-lnk-parser"
-homepage = "https://github.com/Yamato-Security/ys-lnk-parser"
 keywords = ["forensics", "dfir", "lnk", "jumplist", "windows"]
 # Sources only: test fixtures stay in the repository.
 include = ["/src", "/README.md", "/LICENSE-APACHE", "/LICENSE-MIT"]
@@ -28,13 +27,13 @@ guid-names = []
 codepages = ["dep:encoding_rs", "dep:codepage"]
 
 [dependencies]
-codepage = { version = "0.1", optional = true }
-encoding_rs = { version = "0.8", optional = true }
+codepage = { version = "0.1.3", optional = true }
+encoding_rs = { version = "0.8.44", optional = true }
 
 [dev-dependencies]
-proptest = "1"
+proptest = "1.12.0"
 # Reading LnkParse3's expected output (tests/fixtures/lnkparse3/).
-serde_json = "1"
+serde_json = "1.0.154"
 
 [lints.rust]
 unsafe_code = "forbid"
